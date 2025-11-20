@@ -14,17 +14,20 @@ dependencies:
   cupertino_icons: ^1.0.8
   http: ^1.2.0
   shared_preferences: ^2.2.2
-  
   google_fonts: ^6.3.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
   flutter_lints: ^5.0.0
+  # HAPUS flutter_launcher_icons DARI SINI
 
 flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/pantai_landingscreen.jpg
+    # Pastikan nama file ini SESUAI dengan nama di folder assets/images laptop Anda
+    # (Cek apakah pakai 's' atau tidak. Di sini saya tulis tanpa 's')
+    - assets/images/pantai_landingscreens.jpg
+
+# HAPUS KONFIGURASI LOGO DI BAWAH SINI
