@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:bulbul_reservasi/services/auth_service.dart';
 import 'package:bulbul_reservasi/screens/login_screen.dart';
+import 'package:bulbul_reservasi/services/auth_service.dart';
 
 class HomeScreen extends StatelessWidget {
   final AuthService _authService = AuthService();
@@ -8,10 +8,9 @@ class HomeScreen extends StatelessWidget {
   void _logout(BuildContext context) async {
     await _authService.logout();
     Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-      (route) => false,
-    );
+        context,
+        MaterialPageRoute(builder: (_) => LoginScreen()),
+        (route) => false);
   }
 
   @override
