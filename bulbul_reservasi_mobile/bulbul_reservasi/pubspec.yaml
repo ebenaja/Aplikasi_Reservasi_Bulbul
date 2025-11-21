@@ -29,5 +29,7 @@ flutter:
     # Pastikan nama file ini SESUAI dengan nama di folder assets/images laptop Anda
     # (Cek apakah pakai 's' atau tidak. Di sini saya tulis tanpa 's')
     - assets/images/pantai_landingscreens.jpg
+    - assets/images/pondok.jpg
+    - assets/images/banana_boat.jpg
 
 # HAPUS KONFIGURASI LOGO DI BAWAH SINI

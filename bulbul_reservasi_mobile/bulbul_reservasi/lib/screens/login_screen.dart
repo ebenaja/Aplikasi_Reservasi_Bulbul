@@ -17,7 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   final AuthService _authService = AuthService();
   
-  // WARNA UTAMA (TOSCA)
+  // WARNA UTAMA
   final Color mainColor = Color(0xFF50C2C9);
 
   @override
@@ -74,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(Duration(seconds: 1)); // Simulasi loading
+    await Future.delayed(Duration(seconds: 1)); 
 
     String displayName = email.split('@')[0];
     displayName = displayName[0].toUpperCase() + displayName.substring(1);
@@ -87,22 +87,48 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = false);
     
     if (mounted) {
+      // --- GUNAKAN TRANSISI SMOOTH KE HOME ---
       Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (_) => HomeScreen()));
+          context, 
+          _createSmoothRoute(HomeScreen()) // Panggil fungsi route baru
+      );
     }
+  }
+
+  // --- FUNGSI TRANSISI HALUS (FADE + SLIDE) ---
+  Route _createSmoothRoute(Widget page) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => page,
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        // Animasi Slide dari bawah sedikit (biar elegan)
+        const begin = Offset(0.0, 0.05); 
+        const end = Offset.zero;
+        // Kurva gerakan yang halus (tidak kaku)
+        const curve = Curves.easeInOutQuart; 
+
+        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+        return SlideTransition(
+          position: animation.drive(tween),
+          child: FadeTransition( // Gabung dengan efek pudar
+            opacity: animation,
+            child: child,
+          ),
+        );
+      },
+      transitionDuration: Duration(milliseconds: 600), // Durasi 0.6 detik
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Cek apakah bisa back (Datang dari Landing Screen)
     bool canGoBack = Navigator.canPop(context); 
 
     return Scaffold(
       backgroundColor: Color(0xFFF0F4F3),
-      resizeToAvoidBottomInset: false, // Cegah crash keyboard
+      resizeToAvoidBottomInset: false, 
       body: Stack(
         children: [
-          // Dekorasi Background
           Positioned(top: -50, left: -50, child: Container(width: 150, height: 150, decoration: BoxDecoration(shape: BoxShape.circle, color: mainColor.withOpacity(0.3)))),
           Positioned(top: -20, left: -20, child: Container(width: 100, height: 100, decoration: BoxDecoration(shape: BoxShape.circle, color: mainColor.withOpacity(0.3)))),
           
@@ -117,7 +143,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: Column(
                   children: [
-                    // TOMBOL BACK (Kiri Atas)
                     if (canGoBack)
                       Align(
                         alignment: Alignment.centerLeft,
@@ -157,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 30),
 
-                    // TOMBOL LOGIN (Rounded 30)
+                    // TOMBOL LOGIN
                     SizedBox(
                       width: double.infinity,
                       height: 55,
@@ -179,19 +204,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     SizedBox(height: 20),
 
-                    // --- NAVIGASI FOOTER (KE REGISTER) ---
+                    // --- NAVIGASI KE REGISTER (PAKAI TRANSISI SMOOTH) ---
                     GestureDetector(
                       onTap: () async {
-                         // 1. Tutup Keyboard
                          FocusManager.instance.primaryFocus?.unfocus();
-                         // 2. Tunggu animasi keyboard
                          await Future.delayed(Duration(milliseconds: 100));
                          
-                         // 3. Pindah Halaman (Gunakan PushReplacement agar tidak menumpuk)
                          if (context.mounted) {
                            Navigator.pushReplacement(
                              context, 
-                             MaterialPageRoute(builder: (_) => RegisterScreen())
+                             // Gunakan route custom
+                             _createSmoothRoute(RegisterScreen()) 
                            );
                          }
                       },
@@ -214,12 +237,11 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // Widget Custom Text Field
   Widget _buildCustomTextField({required TextEditingController controller, required String hintText, required IconData icon, bool obscureText = false, bool hasSuffix = false}) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30), // BULAT 30
+        borderRadius: BorderRadius.circular(30), 
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 5))],
       ),
       child: TextField(
