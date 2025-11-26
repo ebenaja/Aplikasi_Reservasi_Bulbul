@@ -1,7 +1,9 @@
+import 'package:bulbul_reservasi/screens/admins/admin_home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bulbul_reservasi/screens/register_screen.dart';
 import 'package:bulbul_reservasi/screens/home_screen.dart';
+import 'package:bulbul_reservasi/screens/admins/admin_home_screen.dart'; // IMPORT ADMIN SCREEN
 import 'package:bulbul_reservasi/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,7 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   final AuthService _authService = AuthService();
   
-  // WARNA UTAMA
   final Color mainColor = Color(0xFF50C2C9);
 
   @override
@@ -60,6 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  // --- LOGIKA LOGIN (ADMIN / USER) ---
   void _login() async {
     FocusManager.instance.primaryFocus?.unfocus();
 
@@ -74,49 +76,67 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     setState(() => _isLoading = true);
+
+    // 1. PANGGIL API (Uncomment jika API sudah jalan)
+    // final response = await _authService.login(email, password);
+    // int statusCode = response['status'];
+    // var body = response['body'];
+
+    // --- SIMULASI LOGIKA (Gunakan ini dulu jika API belum ready) ---
     await Future.delayed(Duration(seconds: 1)); 
+    int statusCode = 200; // Anggap sukses
+    // --------------------------------------------------------------
 
-    String displayName = email.split('@')[0];
-    displayName = displayName[0].toUpperCase() + displayName.substring(1);
+    if (statusCode == 200) {
+      // Simpan Data Lokal
+      final prefs = await SharedPreferences.getInstance();
+      String displayName = email.split('@')[0];
+      await prefs.setString('user_name', displayName);
+      _saveUserCredentials(email, password);
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('user_name', displayName);
+      setState(() => _isLoading = false);
 
-    _saveUserCredentials(email, password);
-
-    setState(() => _isLoading = false);
-    
-    if (mounted) {
-      // --- GUNAKAN TRANSISI SMOOTH KE HOME ---
-      Navigator.pushReplacement(
-          context, 
-          _createSmoothRoute(HomeScreen()) // Panggil fungsi route baru
+      // LOGIKA PEMISAHAN ADMIN / USER
+      // Jika email mengandung kata "admin", arahkan ke Admin Screen
+      if (email.toLowerCase().contains('admin')) {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context, 
+            _createSmoothRoute(AdminHomeScreen()) // Masuk ke Admin
+          );
+        }
+      } else {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context, 
+            _createSmoothRoute(HomeScreen()) // Masuk ke User Biasa
+          );
+        }
+      }
+    } else {
+      // Login Gagal
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Login Gagal. Cek email/password"), backgroundColor: Colors.red),
       );
     }
   }
 
-  // --- FUNGSI TRANSISI HALUS (FADE + SLIDE) ---
+  // Fungsi Transisi Smooth
   Route _createSmoothRoute(Widget page) {
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) => page,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        // Animasi Slide dari bawah sedikit (biar elegan)
         const begin = Offset(0.0, 0.05); 
         const end = Offset.zero;
-        // Kurva gerakan yang halus (tidak kaku)
         const curve = Curves.easeInOutQuart; 
-
         var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-
         return SlideTransition(
           position: animation.drive(tween),
-          child: FadeTransition( // Gabung dengan efek pudar
-            opacity: animation,
-            child: child,
-          ),
+          child: FadeTransition(opacity: animation, child: child),
         );
       },
-      transitionDuration: Duration(milliseconds: 600), // Durasi 0.6 detik
+      transitionDuration: Duration(milliseconds: 600),
     );
   }
 
@@ -136,9 +156,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Center(
               child: SingleChildScrollView(
                 padding: EdgeInsets.only(
-                  left: 24, 
-                  right: 24, 
-                  top: 10, 
+                  left: 24, right: 24, top: 10, 
                   bottom: MediaQuery.of(context).viewInsets.bottom + 20
                 ),
                 child: Column(
@@ -159,7 +177,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       SizedBox(height: 48), 
                     
                     SizedBox(height: 10),
-                    
                     Text("Welcome Back!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87)),
                     SizedBox(height: 10),
                     Text("Let’s help you meet up your tasks.", style: TextStyle(fontSize: 14, color: Colors.black54)),
@@ -182,7 +199,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     SizedBox(height: 30),
 
-                    // TOMBOL LOGIN
                     SizedBox(
                       width: double.infinity,
                       height: 55,
@@ -192,9 +208,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           backgroundColor: mainColor,
                           foregroundColor: Colors.white,
                           elevation: 5,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                         ),
                         child: _isLoading 
                           ? CircularProgressIndicator(color: Colors.white) 
@@ -204,16 +218,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     SizedBox(height: 20),
 
-                    // --- NAVIGASI KE REGISTER (PAKAI TRANSISI SMOOTH) ---
                     GestureDetector(
                       onTap: () async {
                          FocusManager.instance.primaryFocus?.unfocus();
                          await Future.delayed(Duration(milliseconds: 100));
-                         
                          if (context.mounted) {
                            Navigator.pushReplacement(
                              context, 
-                             // Gunakan route custom
                              _createSmoothRoute(RegisterScreen()) 
                            );
                          }
