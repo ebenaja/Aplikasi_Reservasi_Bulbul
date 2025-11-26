@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bulbul_reservasi/screens/login_screen.dart';
+// Pastikan file ini sudah ada di folder screens/admins/
+import 'package:bulbul_reservasi/screens/admins/manage_facilities_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
   @override
@@ -19,7 +21,10 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         content: Text("Keluar dari panel admin?"),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("Batal")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Batal", style: TextStyle(color: Colors.grey)),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () async {
@@ -44,18 +49,153 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       backgroundColor: Color(0xFFF0F4F3),
       appBar: AppBar(
         backgroundColor: mainColor,
+        elevation: 0,
         title: Text("Admin Dashboard", style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        actions: [IconButton(onPressed: _logout, icon: Icon(Icons.logout))],
+        actions: [
+          IconButton(onPressed: _logout, icon: Icon(Icons.logout))
+        ],
       ),
-      body: Center(
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. CARD SAMBUTAN
+            Container(
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [mainColor, mainColor.withOpacity(0.7)]),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: mainColor.withOpacity(0.3), blurRadius: 10, offset: Offset(0, 5))],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
+                    child: Icon(Icons.admin_panel_settings, color: Colors.white, size: 40),
+                  ),
+                  SizedBox(width: 15),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Halo, Admin!", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                      Text("Selamat bekerja kembali.", style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    ],
+                  )
+                ],
+              ),
+            ),
+
+            SizedBox(height: 30),
+            Text("Ringkasan Hari Ini", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 15),
+            
+            // 2. STATISTIK (Dummy)
+            Row(
+              children: [
+                _buildStatCard("Pesanan Baru", "5", Colors.orange, Icons.notifications_active),
+                SizedBox(width: 15),
+                _buildStatCard("Pendapatan", "Rp 1.2jt", Colors.green, Icons.attach_money),
+              ],
+            ),
+            
+            SizedBox(height: 30),
+            Text("Menu Pengelola", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            SizedBox(height: 15),
+
+            // 3. GRID MENU ADMIN
+            GridView.count(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 15,
+              mainAxisSpacing: 15,
+              childAspectRatio: 1.1,
+              children: [
+                // MENU 1: KELOLA FASILITAS (Sudah berfungsi)
+                _buildAdminMenuCard(
+                  "Kelola Fasilitas", 
+                  Icons.house_siding, 
+                  () {
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(builder: (context) => ManageFacilitiesScreen())
+                    );
+                  }
+                ),
+                // MENU 2: VERIFIKASI (Placeholder)
+                _buildAdminMenuCard("Verifikasi Bayar", Icons.verified_user, () {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Fitur Verifikasi segera hadir")));
+                }),
+                // MENU 3: LAPORAN (Placeholder)
+                _buildAdminMenuCard("Laporan Keuangan", Icons.bar_chart, () {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Fitur Laporan segera hadir")));
+                }),
+                // MENU 4: USER (Placeholder)
+                _buildAdminMenuCard("Data Pengguna", Icons.people, () {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Fitur User segera hadir")));
+                }),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget Helper: Kartu Statistik
+  Widget _buildStatCard(String title, String value, Color color, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border(left: BorderSide(color: color, width: 5)),
+          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: Offset(0, 2))],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, color: color, size: 24),
+                Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+              ],
+            ),
+            SizedBox(height: 5),
+            Text(title, style: TextStyle(fontSize: 12, color: Colors.grey)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget Helper: Kartu Menu
+  Widget _buildAdminMenuCard(String title, IconData icon, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: Offset(0, 2))],
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.admin_panel_settings, size: 100, color: mainColor),
-            SizedBox(height: 20),
-            Text("Selamat Datang, Admin!", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            Text("Menu pengelolaan akan tampil disini.", style: TextStyle(color: Colors.grey)),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: mainColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 30, color: mainColor),
+            ),
+            SizedBox(height: 10),
+            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13), textAlign: TextAlign.center),
           ],
         ),
       ),

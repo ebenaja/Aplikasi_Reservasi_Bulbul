@@ -1,9 +1,8 @@
-import 'package:bulbul_reservasi/screens/admins/admin_home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:bulbul_reservasi/screens/register_screen.dart';
 import 'package:bulbul_reservasi/screens/home_screen.dart';
-// PERBAIKAN IMPORT: Pastikan path ini sesuai dengan lokasi file Anda
+// PERBAIKAN IMPORT: Mengarah ke folder 'admins' sesuai screenshot Anda
 import 'package:bulbul_reservasi/screens/admins/admin_home_screen.dart'; 
 import 'package:bulbul_reservasi/services/auth_service.dart';
 
@@ -19,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = false;
   bool _isLoading = false;
   final AuthService _authService = AuthService();
+  
   final Color mainColor = Color(0xFF50C2C9);
 
   @override
@@ -51,13 +51,17 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _showForgotPasswordBottomSheet() {}
-
-  void _togglePasswordVisibility() {
-    setState(() { _obscurePassword = !_obscurePassword; });
+  void _showForgotPasswordBottomSheet() {
+    // Kode bottom sheet
   }
 
-  // --- LOGIKA LOGIN UTAMA ---
+  void _togglePasswordVisibility() {
+    setState(() {
+      _obscurePassword = !_obscurePassword;
+    });
+  }
+
+  // --- LOGIKA LOGIN (ADMIN / USER) ---
   void _login() async {
     FocusManager.instance.primaryFocus?.unfocus();
 
@@ -73,7 +77,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
 
-    // 1. PANGGIL AUTH SERVICE
+    // PANGGIL API
     final response = await _authService.login(email, password);
 
     setState(() => _isLoading = false);
@@ -116,6 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // Fungsi Transisi Smooth
   Route _createSmoothRoute(Widget page) {
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) => page,
