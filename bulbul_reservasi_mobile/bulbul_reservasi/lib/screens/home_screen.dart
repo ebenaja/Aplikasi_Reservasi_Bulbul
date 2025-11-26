@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 // Import file-file tab
 import 'package:bulbul_reservasi/screens/tabs/beranda_tab.dart';
-import 'package:bulbul_reservasi/screens/tabs/akun_tab.dart';
+import 'package:bulbul_reservasi/screens/tabs/profile_tab.dart';
 import 'package:bulbul_reservasi/screens/tabs/favorite_tab.dart';
 import 'package:bulbul_reservasi/screens/tabs/pemesanan_tab.dart';
 
@@ -19,7 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
     BerandaTab(),      // Index 0
     FavoriteTab(),  // Index 1
     PemesananTab(),   // Index 2
-    AkunTab(),   // Index 3
+    ProfileTab(),   // Index 3
   ];
 
   @override

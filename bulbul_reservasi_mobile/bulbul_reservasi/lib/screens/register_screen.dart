@@ -1,6 +1,8 @@
+import 'dart:convert'; // PENTING: Untuk membaca respon JSON dari server
 import 'package:flutter/material.dart';
 import 'package:bulbul_reservasi/services/auth_service.dart';
-import 'package:bulbul_reservasi/screens/login_screen.dart'; 
+import 'package:bulbul_reservasi/screens/login_screen.dart';
+import 'package:bulbul_reservasi/screens/landing_screen.dart'; // Import Landing
 
 class RegisterScreen extends StatefulWidget {
   @override
@@ -19,12 +21,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final Color mainColor = Color(0xFF50C2C9);
 
   void _register() async {
-    FocusManager.instance.primaryFocus?.unfocus(); 
+    FocusManager.instance.primaryFocus?.unfocus(); // Tutup keyboard
 
-    setState(() {
-      _isLoading = true;
-    });
-
+    // Validasi Input Awal
     final name = _nameController.text;
     final email = _emailController.text;
     final password = _passwordController.text;
@@ -32,34 +31,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (name.isEmpty || email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
       _showSnackBar("Harap isi semua kolom", Colors.orange);
-      setState(() => _isLoading = false);
       return;
     }
 
     if (password != confirmPassword) {
-      _showSnackBar("Password tidak sama", Colors.red);
-      setState(() => _isLoading = false);
+      _showSnackBar("Password konfirmasi tidak sama", Colors.red);
       return;
     }
 
-    final response = await _authService.register(name, email, password);
+    setState(() => _isLoading = true);
 
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    try {
+      // Panggil API Register
+      final response = await _authService.register(name, email, password);
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      _showSnackBar("Registrasi Berhasil! Silahkan Login", mainColor);
-      if (mounted) {
-        Navigator.pushReplacement(
-          context, 
-          MaterialPageRoute(builder: (context) => LoginScreen())
-        );
+      if (mounted) setState(() => _isLoading = false);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // --- SUKSES ---
+        _showSnackBar("Registrasi Berhasil! Silahkan Login", mainColor);
+        
+        if (mounted) {
+          // Pindah ke Login Screen
+          Navigator.pushReplacement(
+            context, 
+            MaterialPageRoute(builder: (context) => LoginScreen())
+          );
+        }
+      } else {
+        // --- GAGAL (BACA ERROR DARI SERVER) ---
+        // Contoh: "The email has already been taken."
+        String errorMessage = "Registrasi Gagal. Coba lagi.";
+        try {
+          final body = jsonDecode(response.body);
+          if (body['message'] != null) {
+            errorMessage = body['message'];
+          }
+          // Jika Laravel mengirim error validasi field
+          if (body['errors'] != null) {
+            errorMessage = body['errors'].values.first[0]; 
+          }
+        } catch (e) {
+          print("Error parsing response: $e");
+        }
+        
+        _showSnackBar(errorMessage, Colors.red);
       }
-    } else {
-      _showSnackBar("Registrasi Gagal. Coba lagi.", Colors.red);
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+      _showSnackBar("Terjadi kesalahan koneksi", Colors.red);
     }
   }
 
@@ -76,14 +96,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       resizeToAvoidBottomInset: false, 
       body: Stack(
         children: [
-          Positioned(
-            top: -50, left: -50,
-            child: Container(width: 150, height: 150, decoration: BoxDecoration(shape: BoxShape.circle, color: mainColor.withOpacity(0.3))),
-          ),
-          Positioned(
-            top: -20, left: -20,
-            child: Container(width: 100, height: 100, decoration: BoxDecoration(shape: BoxShape.circle, color: mainColor.withOpacity(0.3))),
-          ),
+          // Dekorasi Background
+          Positioned(top: -50, left: -50, child: Container(width: 150, height: 150, decoration: BoxDecoration(shape: BoxShape.circle, color: mainColor.withOpacity(0.3)))),
+          Positioned(top: -20, left: -20, child: Container(width: 100, height: 100, decoration: BoxDecoration(shape: BoxShape.circle, color: mainColor.withOpacity(0.3)))),
 
           SafeArea(
             child: SingleChildScrollView(
@@ -96,33 +111,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // --- TOMBOL BACK YANG DIPERBAIKI ---
+                  // --- TOMBOL BACK (AMAN) ---
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
                       icon: Icon(Icons.arrow_back, color: Colors.black87),
                       onPressed: () async {
                         FocusManager.instance.primaryFocus?.unfocus();
-                        await Future.delayed(Duration(milliseconds: 100)); // Delay dikit biar keyboard turun
+                        await Future.delayed(Duration(milliseconds: 100));
                         
                         if (context.mounted) {
-                          // CEK LOGIKA DISINI:
+                          // Jika tumpukan navigasi kosong, paksa ke LandingScreen
+                          // Jika ada, pop biasa
                           if (Navigator.canPop(context)) {
-                            // Jika bisa back (misal dari Landing Screen), lakukan pop biasa
                             Navigator.pop(context);
                           } else {
-                            // Jika TIDAK bisa back (misal dari Login via pushReplacement),
-                            // PAKSA pindah ke Login Screen
-                            Navigator.pushReplacement(
+                            Navigator.pushAndRemoveUntil(
                               context,
-                              MaterialPageRoute(builder: (context) => LoginScreen()),
+                              MaterialPageRoute(builder: (context) => LandingScreen()),
+                              (route) => false
                             );
                           }
                         }
                       },
                     ),
                   ),
-                  // -----------------------------------
                   
                   SizedBox(height: 40),
                   Text("Welcome Onboard!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)),
@@ -130,6 +143,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Text("Let’s help you meet up your tasks.", style: TextStyle(fontSize: 14, color: Colors.black54)),
                   SizedBox(height: 40),
 
+                  // INPUT FIELDS
                   _buildCustomTextField(controller: _nameController, hintText: "Enter your full name", icon: Icons.person_outline),
                   SizedBox(height: 16),
                   _buildCustomTextField(controller: _emailController, hintText: "Enter your email", keyboardType: TextInputType.emailAddress, icon: Icons.email_outlined),
@@ -140,6 +154,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                   SizedBox(height: 40),
 
+                  // TOMBOL REGISTER
                   SizedBox(
                     width: double.infinity,
                     height: 55,
@@ -154,14 +169,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                       child: _isLoading
-                          ? CircularProgressIndicator(color: Colors.white)
+                          ? SizedBox(
+                              height: 24, width: 24,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
                           : Text("Register", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     ),
                   ),
 
                   SizedBox(height: 20),
 
-                  // Footer Link ke Login
+                  // FOOTER LINK KE LOGIN
                   GestureDetector(
                     onTap: () async {
                        FocusManager.instance.primaryFocus?.unfocus();
