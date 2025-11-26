@@ -10,18 +10,6 @@
       <span class="mdi mdi-menu"></span>
     </button>
     <ul class="navbar-nav navbar-nav-left header-links">
-      <li class="nav-item d-none d-xl-flex">
-        <a href="#" class="nav-link">Schedule <span class="badge badge-primary ml-1">New</span>
-        </a>
-      </li>
-      <li class="nav-item active d-none d-lg-flex">
-        <a href="#" class="nav-link">
-          <i class="mdi mdi-elevation-rise"></i>Reports</a>
-      </li>
-      <li class="nav-item d-none d-md-flex">
-        <a href="#" class="nav-link">
-          <i class="mdi mdi-bookmark-plus-outline"></i>Score</a>
-      </li>
       <li class="nav-item dropdown d-none d-lg-flex">
         <a class="nav-link dropdown-toggle px-0" id="quickDropdown" href="#" data-toggle="dropdown" aria-expanded="false"> Quick Links </a>
         <div class="dropdown-menu dropdown-menu-right navbar-dropdown pt-3" aria-labelledby="quickDropdown">
@@ -32,43 +20,6 @@
       </li>
     </ul>
     <ul class="navbar-nav navbar-nav-right">
-      <li class="nav-item dropdown">
-        <a class="nav-link count-indicator dropdown-toggle" id="messageDropdown" href="#" data-toggle="dropdown" aria-expanded="false">
-          <i class="mdi mdi-file-outline"></i>
-          <span class="count">7</span>
-        </a>
-        <div class="dropdown-menu dropdown-menu-right navbar-dropdown preview-list pb-0" aria-labelledby="messageDropdown">
-          <a class="dropdown-item py-3">
-            <p class="mb-0 font-weight-medium float-left">You have 7 unread mails </p>
-            <span class="badge badge-pill badge-primary float-right">View all</span>
-          </a>
-          <div class="dropdown-divider"></div>
-          <a class="dropdown-item preview-item">
-            <div class="preview-thumbnail">
-              <img src="{{ url('assets/images/faces/face10.jpg') }}" alt="image" class="img-sm profile-pic"> </div>
-            <div class="preview-item-content flex-grow py-2">
-              <p class="preview-subject ellipsis font-weight-medium text-dark">Marian Garner </p>
-              <p class="font-weight-light small-text"> The meeting is cancelled </p>
-            </div>
-          </a>
-          <a class="dropdown-item preview-item">
-            <div class="preview-thumbnail">
-              <img src="{{ url('assets/images/faces/face12.jpg') }}" alt="image" class="img-sm profile-pic"> </div>
-            <div class="preview-item-content flex-grow py-2">
-              <p class="preview-subject ellipsis font-weight-medium text-dark">David Grey </p>
-              <p class="font-weight-light small-text"> The meeting is cancelled </p>
-            </div>
-          </a>
-          <a class="dropdown-item preview-item">
-            <div class="preview-thumbnail">
-              <img src="{{ url('assets/images/faces/face3.jpg') }}" alt="image" class="img-sm profile-pic"> </div>
-            <div class="preview-item-content flex-grow py-2">
-              <p class="preview-subject ellipsis font-weight-medium text-dark">Travis Jenkins </p>
-              <p class="font-weight-light small-text"> The meeting is cancelled </p>
-            </div>
-          </a>
-        </div>
-      </li>
       <li class="nav-item dropdown">
         <a class="nav-link count-indicator dropdown-toggle" id="notificationDropdown" href="#" data-toggle="dropdown">
           <i class="mdi mdi-bell-outline"></i>
@@ -110,7 +61,7 @@
       </li>
       <li class="nav-item dropdown d-none d-xl-inline-block">
         <a class="nav-link dropdown-toggle" id="UserDropdown" href="#" data-toggle="dropdown" aria-expanded="false">
-          <span class="profile-text d-none d-md-inline-flex">Richard V.Welsh !</span>
+          <span class="profile-text d-none d-md-inline-flex">Mikhael Josua Roganda</span>
           <img class="img-xs rounded-circle" src="{{ url('assets/images/faces/face8.jpg') }}" alt="Profile image"> </a>
         <div class="dropdown-menu dropdown-menu-right navbar-dropdown" aria-labelledby="UserDropdown">
           <a class="dropdown-item p-0">
