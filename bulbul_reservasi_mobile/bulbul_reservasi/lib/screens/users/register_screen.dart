@@ -1,10 +1,12 @@
 import 'dart:convert'; // PENTING: Untuk membaca respon JSON dari server
 import 'package:flutter/material.dart';
 import 'package:bulbul_reservasi/services/auth_service.dart';
-import 'package:bulbul_reservasi/screens/login_screen.dart';
-import 'package:bulbul_reservasi/screens/landing_screen.dart'; // Import Landing
+import 'package:bulbul_reservasi/screens/users/login_screen.dart';
+import 'package:bulbul_reservasi/screens/users/landing_screen.dart'; // Import Landing
 
 class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }

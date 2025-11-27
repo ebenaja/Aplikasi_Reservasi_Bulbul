@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:bulbul_reservasi/screens/login_screen.dart';
-import 'package:bulbul_reservasi/screens/register_screen.dart';
+import 'package:bulbul_reservasi/screens/users/login_screen.dart';
+import 'package:bulbul_reservasi/screens/users/register_screen.dart';
 
 class LandingScreen extends StatelessWidget {
   // Warna Utama (Tosca)
   final Color mainColor = Color(0xFF50C2C9);
+
+  LandingScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

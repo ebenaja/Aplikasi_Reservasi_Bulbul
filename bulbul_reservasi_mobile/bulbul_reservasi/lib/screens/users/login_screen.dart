@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:bulbul_reservasi/screens/register_screen.dart';
-import 'package:bulbul_reservasi/screens/home_screen.dart';
+import 'package:bulbul_reservasi/screens/users/register_screen.dart';
+import 'package:bulbul_reservasi/screens/users/home_screen.dart';
 // PERBAIKAN IMPORT: Mengarah ke folder 'admins' sesuai screenshot Anda
 import 'package:bulbul_reservasi/screens/admins/admin_home_screen.dart'; 
 import 'package:bulbul_reservasi/services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }

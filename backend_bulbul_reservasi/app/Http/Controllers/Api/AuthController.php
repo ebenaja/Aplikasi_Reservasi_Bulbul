@@ -12,51 +12,37 @@ use Illuminate\Support\Facades\Validator;
 class AuthController extends Controller
 {
     // REGISTER
-    public function register(Request $request)
+public function register(Request $request)
     {
+        // 1. Validasi
         $validator = Validator::make($request->all(), [
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:users,email',
+            'name' => 'required|string|max:255', // Input dari Flutter adalah 'name'
+            'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
-        ], [
-            'name.required'     => 'Nama wajib diisi',
-            'email.required'    => 'Email wajib diisi',
-            'email.email'       => 'Format email tidak valid',
-            'email.unique'      => 'Email sudah digunakan',
-            'password.required' => 'Password wajib diisi',
-            'password.min'      => 'Password minimal 8 karakter'
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors'  => $validator->errors()
-            ], 422);
+            return response()->json($validator->errors(), 422);
         }
 
-        // Default role user
+        // 2. Simpan ke Database
         $user = User::create([
-            'name'     => $request->name,
-            'email'    => $request->email,
+            // KIRI: Nama Kolom di Database (nama)
+            // KANAN: Nama Input dari Flutter (name)
+            'nama' => $request->name,  // <--- PERBAIKAN DISINI
+
+            'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role'     => 'user'
+            'role_id' => 2, // Default Role ID untuk User/Wisatawan
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
-            'success' => true,
-            'message' => 'Register berhasil',
-            'data'    => [
-                'id'    => $user->id,
-                'name'  => $user->name,
-                'email' => $user->email,
-                'role'  => $user->role
-            ],
+            'data' => $user,
             'access_token' => $token,
-            'token_type'   => 'Bearer',
-        ], 201);
+            'token_type' => 'Bearer',
+        ]);
     }
 
     // LOGIN

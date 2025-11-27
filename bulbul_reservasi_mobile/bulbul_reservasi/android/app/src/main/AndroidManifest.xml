@@ -1,16 +1,21 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.bulbul_reservasi">
 
-    <!-- 1. WAJIB: Izin Internet -->
+    <!-- 1. TAMBAHKAN IZIN INTERNET (Sudah ada sebelumnya) -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- 2. TAMBAHKAN IZIN GALERI & PENYIMPANAN (BARU) -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
 
     <application
         android:label="Bulbul Holidays"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
-        
-        <!-- 2. WAJIB: Izinkan HTTP (Localhost) -->
-        android:usesCleartextTraffic="true">
+        android:usesCleartextTraffic="true"
+        android:requestLegacyExternalStorage="true"> <!-- 3. TAMBAHAN AGAR BISA BACA FILE DI ANDROID LAMA -->
         
         <activity
             android:name=".MainActivity"
@@ -21,15 +26,18 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
+            
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
@@ -39,6 +47,10 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- 4. TAMBAHAN UNTUK MEMBUKA KAMERA/GALERI -->
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
     </queries>
 </manifest>

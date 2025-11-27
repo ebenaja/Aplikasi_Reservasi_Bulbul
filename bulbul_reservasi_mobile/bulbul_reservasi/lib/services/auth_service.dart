@@ -10,7 +10,7 @@ class AuthService {
   // Gunakan 10.0.2.2 jika pakai Emulator Android.
   // Gunakan IP Laptop (misal 192.168.1.x) jika pakai HP Fisik.
   // --------------------------------------------------------------------------
-  final String baseUrl = 'http://10.0.2.2:8000/api'; 
+final String baseUrl = 'http://10.0.2.2:8000/api'; 
 
   // ==========================================================================
   // 1. FUNGSI LOGIN (REVISI ROBUST / TAHAN BANTING)
@@ -41,13 +41,15 @@ class AuthService {
         Map<String, dynamic> user = {};
 
         // 1. Cek Token (Bisa 'token', 'access_token', atau di dalam 'data')
-        if (data['token'] != null) token = data['token'];
-        else if (data['access_token'] != null) token = data['access_token'];
+        if (data['token'] != null) {
+          token = data['token'];
+        } else if (data['access_token'] != null) token = data['access_token'];
         else if (data['data'] != null && data['data']['token'] != null) token = data['data']['token'];
 
         // 2. Cek User (Bisa 'user', 'data.user', atau langsung di root)
-        if (data['user'] != null) user = data['user'];
-        else if (data['data'] != null && data['data']['user'] != null) user = data['data']['user'];
+        if (data['user'] != null) {
+          user = data['user'];
+        } else if (data['data'] != null && data['data']['user'] != null) user = data['data']['user'];
         
         // Jika user kosong, coba cari nama langsung di root (fallback)
         if (user.isEmpty && data['name'] != null) {
@@ -66,8 +68,9 @@ class AuthService {
         
         // 4. Ambil Role
         String role = "user";
-        if (user['role'] != null) role = user['role'].toString();
-        else if (user['roles'] != null && user['roles'] is List && (user['roles'] as List).isNotEmpty) {
+        if (user['role'] != null) {
+          role = user['role'].toString();
+        } else if (user['roles'] != null && user['roles'] is List && (user['roles'] as List).isNotEmpty) {
            // Jika formatnya array roles: [{"name": "admin"}]
            role = user['roles'][0]['name']; 
         }

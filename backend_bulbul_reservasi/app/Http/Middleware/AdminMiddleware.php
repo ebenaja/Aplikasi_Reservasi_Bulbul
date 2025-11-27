@@ -10,19 +10,23 @@ class AdminMiddleware
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Pastikan user sudah login
-        if (!$request->user()) {
+        $user = $request->user();
+
+        // 1. Cek apakah user sudah login
+        if (!$user) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized: Kamu belum login'
+                'message' => 'Unauthorized: Silakan login terlebih dahulu.'
             ], 401);
         }
 
-        // Cek apakah role = admin
-        if ($request->user()->role !== 'admin') {
+        // 2. Cek apakah user adalah Admin
+        // Asumsi: Di database, role_id 1 = Admin, role_id 2 = User
+        // Sesuaikan angka '1' ini dengan ID Admin di tabel 'roles' Anda.
+        if ($user->role_id != 1) {
             return response()->json([
                 'success' => false,
-                'message' => 'Forbidden: Kamu bukan admin'
+                'message' => 'Forbidden: Akses ditolak. Anda bukan Admin.'
             ], 403);
         }
 

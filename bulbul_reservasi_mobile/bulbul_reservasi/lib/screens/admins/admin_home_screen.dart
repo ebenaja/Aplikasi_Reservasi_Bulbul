@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:bulbul_reservasi/screens/login_screen.dart';
-// Pastikan file ini sudah ada di folder screens/admins/
+// PASTIKAN IMPORT INI BENAR (Mengarah ke folder screens utama)
+import 'package:bulbul_reservasi/screens/users/login_screen.dart';
 import 'package:bulbul_reservasi/screens/admins/manage_facilities_screen.dart';
 
 class AdminHomeScreen extends StatefulWidget {
+  const AdminHomeScreen({super.key});
+
   @override
   _AdminHomeScreenState createState() => _AdminHomeScreenState();
 }
@@ -30,11 +32,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             onPressed: () async {
               final prefs = await SharedPreferences.getInstance();
               await prefs.clear(); // Hapus sesi
-              Navigator.pushAndRemoveUntil(
-                context, 
-                MaterialPageRoute(builder: (_) => LoginScreen()), 
-                (route) => false
-              );
+              
+              if (mounted) {
+                Navigator.pushAndRemoveUntil(
+                  context, 
+                  MaterialPageRoute(builder: (_) => LoginScreen()), 
+                  (route) => false
+                );
+              }
             },
             child: Text("Logout", style: TextStyle(color: Colors.white)),
           )
@@ -50,7 +55,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       appBar: AppBar(
         backgroundColor: mainColor,
         elevation: 0,
-        title: Text("Admin Dashboard", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text("Admin Dashboard", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        iconTheme: IconThemeData(color: Colors.white),
         actions: [
           IconButton(onPressed: _logout, icon: Icon(Icons.logout))
         ],
@@ -64,7 +70,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             Container(
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [mainColor, mainColor.withOpacity(0.7)]),
+                gradient: LinearGradient(
+                  colors: [mainColor, mainColor.withOpacity(0.7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [BoxShadow(color: mainColor.withOpacity(0.3), blurRadius: 10, offset: Offset(0, 5))],
               ),
@@ -88,7 +98,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ),
 
             SizedBox(height: 30),
-            Text("Ringkasan Hari Ini", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Ringkasan Hari Ini", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
             SizedBox(height: 15),
             
             // 2. STATISTIK (Dummy)
@@ -101,7 +111,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ),
             
             SizedBox(height: 30),
-            Text("Menu Pengelola", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text("Menu Pengelola", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
             SizedBox(height: 15),
 
             // 3. GRID MENU ADMIN
@@ -113,7 +123,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               mainAxisSpacing: 15,
               childAspectRatio: 1.1,
               children: [
-                // MENU 1: KELOLA FASILITAS (Sudah berfungsi)
+                // MENU 1: KELOLA FASILITAS
                 _buildAdminMenuCard(
                   "Kelola Fasilitas", 
                   Icons.house_siding, 
@@ -124,27 +134,29 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     );
                   }
                 ),
-                // MENU 2: VERIFIKASI (Placeholder)
+                // MENU 2: VERIFIKASI
                 _buildAdminMenuCard("Verifikasi Bayar", Icons.verified_user, () {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Fitur Verifikasi segera hadir")));
                 }),
-                // MENU 3: LAPORAN (Placeholder)
+                // MENU 3: LAPORAN
                 _buildAdminMenuCard("Laporan Keuangan", Icons.bar_chart, () {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Fitur Laporan segera hadir")));
                 }),
-                // MENU 4: USER (Placeholder)
+                // MENU 4: USER
                 _buildAdminMenuCard("Data Pengguna", Icons.people, () {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Fitur User segera hadir")));
                 }),
               ],
             ),
+            
+            SizedBox(height: 30),
           ],
         ),
       ),
     );
   }
 
-  // Widget Helper: Kartu Statistik
+  // Widget Helper
   Widget _buildStatCard(String title, String value, Color color, IconData icon) {
     return Expanded(
       child: Container(
@@ -153,7 +165,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border(left: BorderSide(color: color, width: 5)),
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: Offset(0, 2))],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 2))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,7 +185,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     );
   }
 
-  // Widget Helper: Kartu Menu
   Widget _buildAdminMenuCard(String title, IconData icon, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
@@ -181,21 +192,18 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: Offset(0, 2))],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 2))],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: mainColor.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
+              decoration: BoxDecoration(color: mainColor.withOpacity(0.1), shape: BoxShape.circle),
               child: Icon(icon, size: 30, color: mainColor),
             ),
             SizedBox(height: 10),
-            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13), textAlign: TextAlign.center),
+            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87), textAlign: TextAlign.center),
           ],
         ),
       ),

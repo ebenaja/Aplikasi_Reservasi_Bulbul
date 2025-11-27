@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:bulbul_reservasi/screens/login_screen.dart';
+import 'package:bulbul_reservasi/screens/users/login_screen.dart';
 import 'package:bulbul_reservasi/services/auth_service.dart';
 
 class ProfileTab extends StatefulWidget {
+  const ProfileTab({super.key});
+
   @override
   _ProfileTabState createState() => _ProfileTabState();
 }
@@ -33,13 +35,13 @@ class _ProfileTabState extends State<ProfileTab> {
 
   // Dialog Edit Nama
   void _showEditNameDialog() {
-    TextEditingController _nameEditController = TextEditingController(text: userName);
+    TextEditingController nameEditController = TextEditingController(text: userName);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text("Ubah Nama"),
         content: TextField(
-          controller: _nameEditController,
+          controller: nameEditController,
           decoration: InputDecoration(labelText: "Nama Lengkap"),
         ),
         actions: [
@@ -49,12 +51,12 @@ class _ProfileTabState extends State<ProfileTab> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (_nameEditController.text.isNotEmpty) {
+              if (nameEditController.text.isNotEmpty) {
                 final prefs = await SharedPreferences.getInstance();
-                await prefs.setString('user_name', _nameEditController.text);
+                await prefs.setString('user_name', nameEditController.text);
                 
                 setState(() {
-                  userName = _nameEditController.text;
+                  userName = nameEditController.text;
                 });
                 
                 Navigator.pop(context);

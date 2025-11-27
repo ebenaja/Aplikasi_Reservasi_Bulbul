@@ -1,26 +1,36 @@
 import 'package:flutter/material.dart';
-import 'package:bulbul_reservasi/screens/landing_screen.dart';
+// 1. WAJIB IMPORT INI UNTUK FORMAT TANGGAL INDONESIA
+import 'package:intl/date_symbol_data_local.dart'; 
 
-void main() {
-  runApp(MyApp());
+// Import screen Anda (sesuaikan jika path berubah, tapi ini sesuai kode Anda)
+import 'package:bulbul_reservasi/screens/users/landing_screen.dart'; 
+
+void main() async {
+  // 2. Pastikan binding siap sebelum menjalankan kode async
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 3. Inisialisasi Data Tanggal untuk Bahasa Indonesia ('id_ID')
+  // Ini yang memperbaiki Error Layar Merah di PaymentScreen
+  await initializeDateFormatting('id_ID', null);
+
+  runApp(const MyApp());
 }
 
-// Ubah ke StatefulWidget untuk Precache Gambar
 class MyApp extends StatefulWidget {
+  const MyApp({super.key});
+
   @override
   _MyAppState createState() => _MyAppState();
 }
 
 class _MyAppState extends State<MyApp> {
   
-  // Fungsi ini berjalan otomatis saat aplikasi dimuat
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     
-    // 1. PRECACHE IMAGE (RAHASIA AGAR TIDAK PATAH-PATAH)
-    // Ini memaksa Flutter memuat gambar ke RAM sebelum ditampilkan.
-    precacheImage(AssetImage("assets/images/pantai_landingscreens.jpg"), context);
+    // Precache gambar agar tidak berkedip saat loading
+    precacheImage(const AssetImage("assets/images/pantai_landingscreens.jpg"), context);
   }
 
   @override
@@ -29,15 +39,12 @@ class _MyAppState extends State<MyApp> {
       title: 'Bulbul Reservasi',
       debugShowCheckedModeBanner: false,
       
-      // 2. SETUP TEMA AGAR SMOOTH
       theme: ThemeData(
-        useMaterial3: true, // Rendering lebih efisien
-        fontFamily: 'Serif', // Menyesuaikan font yang Anda pakai sebelumnya
-        
-        // Pengaturan Transisi Halaman Global (Agar slide/pindahnya halus)
-        pageTransitionsTheme: PageTransitionsTheme(
+        useMaterial3: true,
+        fontFamily: 'Serif',
+        pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
-            TargetPlatform.android: ZoomPageTransitionsBuilder(), // Efek Zoom halus
+            TargetPlatform.android: ZoomPageTransitionsBuilder(),
             TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
           },
         ),

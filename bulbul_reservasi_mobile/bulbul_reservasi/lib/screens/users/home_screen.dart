@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 // Import file-file tab
-import 'package:bulbul_reservasi/screens/tabs/beranda_tab.dart';
-import 'package:bulbul_reservasi/screens/tabs/profile_tab.dart';
-import 'package:bulbul_reservasi/screens/tabs/favorite_tab.dart';
-import 'package:bulbul_reservasi/screens/tabs/pemesanan_tab.dart';
+import 'package:bulbul_reservasi/screens/users/tabs/beranda_tab.dart';
+import 'package:bulbul_reservasi/screens/users/tabs/profile_tab.dart';
+import 'package:bulbul_reservasi/screens/users/tabs/favorite_tab.dart';
+import 'package:bulbul_reservasi/screens/users/tabs/pemesanan_tab.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }

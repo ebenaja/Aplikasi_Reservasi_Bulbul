@@ -21,7 +21,7 @@ class UsersSeeder extends Seeder
             [
                 'role_id' => $adminRoleId,
                 'nama' => 'Administrator BulBul',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('admin123'),
                 'created_at' => now(),
             ]
         );

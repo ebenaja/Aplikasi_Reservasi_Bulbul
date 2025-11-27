@@ -10,14 +10,14 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        Schema::create('roles', function (Blueprint $table) {
-            $table->id();
-            $table->string('name')->unique();
-            $table->string('description')->nullable();
-            $table->timestamps();
-        });
-    }
+{
+    Schema::create('roles', function (Blueprint $table) {
+        $table->id();
+        // Pastikan ini 'nama_role', BUKAN 'name'
+        $table->string('nama_role');
+        $table->timestamps();
+    });
+}
 
     /**
      * Reverse the migrations.
