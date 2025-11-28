@@ -5,6 +5,7 @@ import 'package:bulbul_reservasi/screens/users/tabs/profile_tab.dart';
 import 'package:bulbul_reservasi/screens/users/tabs/favorite_tab.dart';
 import 'package:bulbul_reservasi/screens/users/tabs/pemesanan_tab.dart';
 
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -16,26 +17,32 @@ class _HomeScreenState extends State<HomeScreen> {
   final Color mainColor = Color(0xFF50C2C9);
   int _currentIndex = 0;
 
-  // Daftar Halaman sesuai urutan Bottom Nav
-  final List<Widget> _pages = [
-    BerandaTab(),      // Index 0
-    FavoriteTab(),  // Index 1
-    PemesananTab(),   // Index 2
-    ProfileTab(),   // Index 3
-  ];
+  // Daftar Halaman
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      BerandaTab(),      // Index 0
+      FavoriteTab(),     // Index 1
+      PemesananTab(),    // Index 2
+      ProfileTab(),      // Index 3
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFFF0F4F3),
       
-      // --- BODY DENGAN ANIMASI TRANSISI ---
+      // --- BODY DENGAN ANIMASI TRANSISI (SMOOTH FADE) ---
       body: AnimatedSwitcher(
-        duration: Duration(milliseconds: 500), // Durasi transisi 0.5 detik
-        switchInCurve: Curves.easeOut,         // Kurva masuk yang halus
-        switchOutCurve: Curves.easeIn,         // Kurva keluar yang halus
+        duration: Duration(milliseconds: 400), // Durasi animasi
+        switchInCurve: Curves.easeOut,         // Gerakan masuk halus
+        switchOutCurve: Curves.easeIn,         // Gerakan keluar halus
         
-        // Jenis Transisi: Fade (Pudar)
+        // Jenis Transisi: Fade (Memudar)
         transitionBuilder: (Widget child, Animation<double> animation) {
           return FadeTransition(
             opacity: animation,
@@ -44,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         
         // Child yang berubah-ubah sesuai index
-        // Key penting agar Flutter tahu halamannya beda
+        // KeyedSubtree PENTING agar Flutter tahu kalau halamannya beda
         child: KeyedSubtree(
           key: ValueKey<int>(_currentIndex),
           child: _pages[_currentIndex],

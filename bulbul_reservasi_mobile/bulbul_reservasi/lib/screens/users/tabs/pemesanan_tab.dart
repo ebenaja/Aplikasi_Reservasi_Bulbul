@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bulbul_reservasi/services/reservasi_service.dart';
-import 'package:bulbul_reservasi/screens/users/add_review_dialog.dart'; // Import Dialog Ulasan
+import 'package:bulbul_reservasi/screens/users/add_review_dialog.dart';
 
 class PemesananTab extends StatefulWidget {
   const PemesananTab({super.key});
@@ -33,24 +33,55 @@ class _PemesananTabState extends State<PemesananTab> {
     }
   }
 
-  // Buka Dialog Ulasan
+  // Input Nomor Referensi (Konfirmasi Bayar)
+  void _showKonfirmasiDialog(int reservasiId) {
+    TextEditingController _refController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Konfirmasi Pembayaran"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Masukkan Nomor Referensi / ID Transaksi:", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            SizedBox(height: 10),
+            TextField(
+              controller: _refController,
+              decoration: InputDecoration(labelText: "No. Referensi", border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("Batal")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: mainColor),
+            onPressed: () async {
+              if (_refController.text.isEmpty) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Sedang memproses...")));
+
+              bool success = await _reservasiService.konfirmasiPembayaran(reservasiId, _refController.text);
+
+              if (success) {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Konfirmasi Berhasil!"), backgroundColor: Colors.green));
+                _fetchHistory();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Gagal konfirmasi."), backgroundColor: Colors.red));
+              }
+            },
+            child: Text("Kirim", style: TextStyle(color: Colors.white)),
+          )
+        ],
+      ),
+    );
+  }
+
+  // Dialog Ulasan
   void _openReviewDialog(int fasilitasId) async {
     await showDialog(
       context: context,
       builder: (context) => AddReviewDialog(fasilitasId: fasilitasId),
     );
-    // Opsional: Refresh data setelah ulasan (jika perlu update status)
-  }
-
-  // Helper Warna Status
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending': return Colors.orange;
-      case 'dibayar': return Colors.blue;
-      case 'selesai': return Colors.green;
-      case 'batal': return Colors.red;
-      default: return Colors.grey;
-    }
   }
 
   @override
@@ -62,97 +93,50 @@ class _PemesananTabState extends State<PemesananTab> {
         backgroundColor: mainColor,
         elevation: 0,
         centerTitle: true,
-        automaticallyImplyLeading: false, // Hapus tombol back karena ini Tab
+        automaticallyImplyLeading: false,
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: mainColor))
           : _history.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.history, size: 80, color: Colors.grey[300]),
-                      SizedBox(height: 20),
-                      Text("Belum ada riwayat pemesanan", style: TextStyle(fontSize: 16, color: Colors.grey)),
-                    ],
-                  ),
-                )
+              ? Center(child: Text("Belum ada riwayat pemesanan"))
               : ListView.builder(
                   padding: EdgeInsets.all(16),
                   itemCount: _history.length,
                   itemBuilder: (context, index) {
                     final item = _history[index];
-                    final fasilitas = item['fasilitas']; // Data relasi dari Laravel
+                    final fasilitas = item['fasilitas'];
                     final status = item['status'] ?? 'pending';
+                    bool isPending = status == 'pending';
 
                     return Card(
                       margin: EdgeInsets.only(bottom: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      elevation: 2,
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Header Card: Nama & Status
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    fasilitas != null ? fasilitas['nama_fasilitas'] : 'Fasilitas Dihapus', 
-                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: _getStatusColor(status).withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8)
-                                  ),
-                                  child: Text(
-                                    status.toUpperCase(),
-                                    style: TextStyle(color: _getStatusColor(status), fontSize: 12, fontWeight: FontWeight.bold),
-                                  ),
-                                )
-                              ],
-                            ),
-                            Divider(height: 20),
-                            
-                            // Info Detail
-                            Row(
-                              children: [
-                                Icon(Icons.calendar_today, size: 14, color: Colors.grey),
-                                SizedBox(width: 5),
-                                Text("Tgl: ${item['tanggal_sewa']}", style: TextStyle(fontSize: 13)),
-                                Spacer(),
-                                Text("Rp ${item['total_harga']}", style: TextStyle(fontWeight: FontWeight.bold, color: mainColor, fontSize: 15)),
-                              ],
-                            ),
-                            
+                            Text(fasilitas != null ? fasilitas['nama_fasilitas'] : 'Item Dihapus', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                             SizedBox(height: 5),
-                            Text("Durasi: ${item['durasi']} (Hari/Jam)", style: TextStyle(fontSize: 12, color: Colors.grey)),
-
-                            SizedBox(height: 15),
-
-                            // TOMBOL AKSI
-                            // Tampilkan tombol ulasan hanya jika fasilitas masih ada
-                            if (fasilitas != null)
+                            Text("Rp ${item['total_harga']} - Status: $status", style: TextStyle(color: Colors.grey)),
+                            Divider(),
+                            if (isPending)
                               SizedBox(
                                 width: double.infinity,
-                                height: 40,
-                                child: OutlinedButton.icon(
-                                  onPressed: () => _openReviewDialog(fasilitas['id']),
-                                  icon: Icon(Icons.star_rate, size: 18),
-                                  label: Text("Beri Ulasan"),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: Colors.amber[700],
-                                    side: BorderSide(color: Colors.amber),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
-                                  ),
+                                child: ElevatedButton.icon(
+                                  onPressed: () => _showKonfirmasiDialog(item['id']),
+                                  icon: Icon(Icons.check_circle_outline),
+                                  label: Text("Konfirmasi Pembayaran"),
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
                                 ),
                               )
+                            else if (status == 'selesai')
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton(onPressed: () => _openReviewDialog(fasilitas['id']), child: Text("Beri Ulasan")),
+                              )
+                            else
+                              Center(child: Text("Menunggu Verifikasi Admin", style: TextStyle(color: mainColor, fontStyle: FontStyle.italic)))
                           ],
                         ),
                       ),

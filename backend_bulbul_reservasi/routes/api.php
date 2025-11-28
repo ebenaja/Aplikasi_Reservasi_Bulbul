@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FasilitasController;
 use App\Http\Controllers\Api\ReservasiController;
 use App\Http\Controllers\Api\UlasanController;
+use App\Http\Controllers\Api\AdminController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,6 +36,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reservasi', [ReservasiController::class, 'store']);
     Route::post('/ulasan', [UlasanController::class, 'store']);
     Route::get('/ulasan-terbaru', [UlasanController::class, 'allReviews']);
+    Route::post('/pembayaran', [PembayaranController::class, 'store']);
+
     // Logout
     Route::post('/logout', [AuthController::class, 'logout']);
 
@@ -51,10 +54,23 @@ Route::middleware('auth:sanctum')->group(function () {
     // Pastikan middleware 'admin' sudah Anda buat dan daftarkan
     Route::middleware('admin')->group(function () {
 
+        Route::get('/admin/statistics', [AdminController::class, 'getStatistics']);
         // CRUD Fasilitas (Create, Update, Delete)
         Route::post('/fasilitas', [FasilitasController::class, 'store']);
         Route::put('/fasilitas/{id}', [FasilitasController::class, 'update']);
         Route::delete('/fasilitas/{id}', [FasilitasController::class, 'destroy']);
+
+         // DATA PENGGUNA
+        Route::get('/admin/users', [AdminController::class, 'getAllUsers']);
+        Route::delete('/admin/users/{id}', [AdminController::class, 'deleteUser']);
+
+        // RESERVASI & PEMBAYARAN
+        Route::get('/admin/reservasi', [AdminController::class, 'getAllReservations']);
+        Route::post('/admin/reservasi/{id}/status', [AdminController::class, 'updateReservasiStatus']);
+
+        // ULASAN
+        Route::get('/admin/ulasan', [AdminController::class, 'getAllUlasan']);
+        Route::delete('/admin/ulasan/{id}', [AdminController::class, 'deleteUlasan']);
 
         // Dashboard Data (Contoh)
         Route::get('/admin/dashboard', function () {
