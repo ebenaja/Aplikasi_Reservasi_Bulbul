@@ -18,6 +18,7 @@ class Fasilitas extends Model
         'stok',
         'status',
         'foto',
+        'is_promo'
     ];
 
     // --- TAMBAHKAN INI ---

@@ -20,11 +20,11 @@ return new class extends Migration
                 ->cascadeOnDelete();
 
             $table->date('tanggal_sewa');
+            $table->time('jam_mulai'); // Format: 14:30:00
+
             $table->integer('durasi');
             $table->decimal('total_harga', 12, 2);
-
-            $table->string('status', 20)->default('pending'); // pending / dibayar / selesai
-
+            $table->string('status', 20)->default('pending');
             $table->timestamps();
         });
     }

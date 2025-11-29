@@ -10,13 +10,13 @@ use Illuminate\Support\Facades\Validator;
 
 class UlasanController extends Controller
 {
-    // --- TAMBAHAN PENTING: Ambil Semua Ulasan Terbaru (Untuk Beranda) ---
+    // Fungsi ini dipanggil oleh User (Beranda)
     public function allReviews()
     {
-        // Ambil 5 ulasan terakhir dari semua fasilitas
-        $ulasan = Ulasan::with('user:id,nama') // Join tabel user ambil namanya
-            ->latest() // Urutkan dari yang paling baru
-            ->take(5)  // Batasi cuma 5
+        // Ambil semua ulasan, urutkan dari yang terbaru
+        $ulasan = Ulasan::with(['user:id,nama', 'fasilitas:id,nama_fasilitas'])
+            ->latest()
+            ->take(5) // Ambil 5 terakhir
             ->get();
 
         return response()->json([
@@ -24,6 +24,7 @@ class UlasanController extends Controller
             'data' => $ulasan
         ]);
     }
+
     // ---------------------------------------------------------------------
 
     // 1. GET: Ambil Ulasan per Fasilitas

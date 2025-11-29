@@ -10,7 +10,7 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+  url_launcher: ^6.1.11 
   cupertino_icons: ^1.0.8
   http: ^1.2.0
   shared_preferences: ^2.2.2
@@ -34,3 +34,6 @@ flutter:
     - assets/images/pantai_landingscreens.jpg
     - assets/images/pondok.jpg
     - assets/images/banana_boat.jpg
+    - assets/images/pondok_bulbul.jpg
+    - assets/images/tenda.jpeg
+    - assets/images/homestay.jpeg

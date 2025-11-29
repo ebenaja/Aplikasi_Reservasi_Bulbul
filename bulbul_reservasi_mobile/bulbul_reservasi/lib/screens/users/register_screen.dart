@@ -1,8 +1,8 @@
-import 'dart:convert'; // PENTING: Untuk membaca respon JSON dari server
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:bulbul_reservasi/services/auth_service.dart';
 import 'package:bulbul_reservasi/screens/users/login_screen.dart';
-import 'package:bulbul_reservasi/screens/users/landing_screen.dart'; // Import Landing
+import 'package:bulbul_reservasi/screens/users/landing_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -19,13 +19,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   final AuthService _authService = AuthService();
   bool _isLoading = false;
+  final Color mainColor = const Color(0xFF50C2C9);
 
-  final Color mainColor = Color(0xFF50C2C9);
+  // Toggle Password Visibility
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   void _register() async {
-    FocusManager.instance.primaryFocus?.unfocus(); // Tutup keyboard
+    FocusManager.instance.primaryFocus?.unfocus(); 
 
-    // Validasi Input Awal
     final name = _nameController.text;
     final email = _emailController.text;
     final password = _passwordController.text;
@@ -44,51 +46,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Panggil API Register
       final response = await _authService.register(name, email, password);
 
       if (mounted) setState(() => _isLoading = false);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        // --- SUKSES ---
         _showSnackBar("Registrasi Berhasil! Silahkan Login", mainColor);
-        
         if (mounted) {
-          // Pindah ke Login Screen
-          Navigator.pushReplacement(
-            context, 
-            MaterialPageRoute(builder: (context) => LoginScreen())
-          );
+          Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen()));
         }
       } else {
-        // --- GAGAL (BACA ERROR DARI SERVER) ---
-        // Contoh: "The email has already been taken."
-        String errorMessage = "Registrasi Gagal. Coba lagi.";
+        String errorMsg = "Registrasi Gagal.";
         try {
           final body = jsonDecode(response.body);
-          if (body['message'] != null) {
-            errorMessage = body['message'];
-          }
-          // Jika Laravel mengirim error validasi field
-          if (body['errors'] != null) {
-            errorMessage = body['errors'].values.first[0]; 
+          if (body['message'] != null) errorMsg = body['message'];
+          if (body['errors'] != null && body['errors'].isNotEmpty) {
+            errorMsg = body['errors'].values.first[0]; 
           }
         } catch (e) {
-          print("Error parsing response: $e");
+          print("Error parsing error: $e");
         }
-        
-        _showSnackBar(errorMessage, Colors.red);
+        _showSnackBar(errorMsg, Colors.red);
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
-      _showSnackBar("Terjadi kesalahan koneksi", Colors.red);
+      _showSnackBar("Gagal terhubung ke server.", Colors.red);
     }
   }
 
   void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
-    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   @override
@@ -98,101 +86,80 @@ class _RegisterScreenState extends State<RegisterScreen> {
       resizeToAvoidBottomInset: false, 
       body: Stack(
         children: [
-          // Dekorasi Background
+          // Background Bubbles
           Positioned(top: -50, left: -50, child: Container(width: 150, height: 150, decoration: BoxDecoration(shape: BoxShape.circle, color: mainColor.withOpacity(0.3)))),
           Positioned(top: -20, left: -20, child: Container(width: 100, height: 100, decoration: BoxDecoration(shape: BoxShape.circle, color: mainColor.withOpacity(0.3)))),
 
           SafeArea(
             child: SingleChildScrollView(
-              padding: EdgeInsets.only(
-                  left: 24, 
-                  right: 24, 
-                  top: 10, 
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 20
-              ),
+              padding: EdgeInsets.fromLTRB(24, 10, 24, MediaQuery.of(context).viewInsets.bottom + 20),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // --- TOMBOL BACK (AMAN) ---
+                  // Back Button
                   Align(
                     alignment: Alignment.centerLeft,
                     child: IconButton(
                       icon: Icon(Icons.arrow_back, color: Colors.black87),
-                      onPressed: () async {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                        await Future.delayed(Duration(milliseconds: 100));
-                        
-                        if (context.mounted) {
-                          // Jika tumpukan navigasi kosong, paksa ke LandingScreen
-                          // Jika ada, pop biasa
-                          if (Navigator.canPop(context)) {
-                            Navigator.pop(context);
-                          } else {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(builder: (context) => LandingScreen()),
-                              (route) => false
-                            );
-                          }
-                        }
-                      },
+                      onPressed: () => Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => LandingScreen()), (route) => false),
                     ),
                   ),
                   
-                  SizedBox(height: 40),
+                  SizedBox(height: 30),
                   Text("Welcome Onboard!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)),
                   SizedBox(height: 10),
                   Text("Let’s help you meet up your tasks.", style: TextStyle(fontSize: 14, color: Colors.black54)),
-                  SizedBox(height: 40),
+                  SizedBox(height: 30),
 
-                  // INPUT FIELDS
-                  _buildCustomTextField(controller: _nameController, hintText: "Enter your full name", icon: Icons.person_outline),
+                  // Input Fields Modern
+                  _buildCustomTextField(
+                    controller: _nameController, 
+                    hintText: "Full Name", 
+                    icon: Icons.person_outline
+                  ),
                   SizedBox(height: 16),
-                  _buildCustomTextField(controller: _emailController, hintText: "Enter your email", keyboardType: TextInputType.emailAddress, icon: Icons.email_outlined),
+                  _buildCustomTextField(
+                    controller: _emailController, 
+                    hintText: "Email address", 
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress 
+                  ),
                   SizedBox(height: 16),
-                  _buildCustomTextField(controller: _passwordController, hintText: "Create password", obscureText: true, icon: Icons.lock_outline),
+                  _buildCustomTextField(
+                    controller: _passwordController, 
+                    hintText: "Password", 
+                    icon: Icons.lock_outline, 
+                    obscureText: _obscurePassword,
+                    hasSuffix: true,
+                    onSuffixTap: () => setState(() => _obscurePassword = !_obscurePassword)
+                  ),
                   SizedBox(height: 16),
-                  _buildCustomTextField(controller: _confirmPasswordController, hintText: "Confirm password", obscureText: true, icon: Icons.lock_outline),
+                  _buildCustomTextField(
+                    controller: _confirmPasswordController, 
+                    hintText: "Confirm Password", 
+                    icon: Icons.lock_outline, 
+                    obscureText: _obscureConfirm,
+                    hasSuffix: true,
+                    onSuffixTap: () => setState(() => _obscureConfirm = !_obscureConfirm)
+                  ),
 
-                  SizedBox(height: 40),
+                  SizedBox(height: 30),
 
-                  // TOMBOL REGISTER
+                  // Tombol Register
                   SizedBox(
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _register,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: mainColor,
-                        foregroundColor: Colors.white,
-                        elevation: 5,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? SizedBox(
-                              height: 24, width: 24,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                            )
-                          : Text("Register", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(backgroundColor: mainColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+                      child: _isLoading ? CircularProgressIndicator(color: Colors.white) : Text("Register", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                     ),
                   ),
 
                   SizedBox(height: 20),
-
-                  // FOOTER LINK KE LOGIN
+                  
+                  // Link ke Login
                   GestureDetector(
-                    onTap: () async {
-                       FocusManager.instance.primaryFocus?.unfocus();
-                       await Future.delayed(Duration(milliseconds: 100));
-                       if (context.mounted) {
-                         Navigator.pushReplacement(
-                           context, 
-                           MaterialPageRoute(builder: (context) => LoginScreen())
-                         );
-                       }
-                    },
+                    onTap: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginScreen())),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -201,7 +168,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ],
                     ),
                   ),
-                  SizedBox(height: 30),
                 ],
               ),
             ),
@@ -211,24 +177,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // --- WIDGET HELPER INPUT FIELD (Lengkap dengan Toggle Password) ---
   Widget _buildCustomTextField({
-    required TextEditingController controller,
-    required String hintText,
+    required TextEditingController controller, 
+    required String hintText, 
     required IconData icon, 
-    bool obscureText = false,
+    bool obscureText = false, 
     TextInputType keyboardType = TextInputType.text,
+    bool hasSuffix = false,
+    VoidCallback? onSuffixTap
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 5),
-          ),
-        ],
+        color: Colors.white, 
+        borderRadius: BorderRadius.circular(15), 
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 5))]
       ),
       child: TextField(
         controller: controller,
@@ -239,8 +202,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           hintText: hintText,
           hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
           border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-          prefixIcon: Icon(icon, color: mainColor.withOpacity(0.7)), 
+          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          prefixIcon: Icon(icon, color: Color(0xFF50C2C9).withOpacity(0.7)),
+          suffixIcon: hasSuffix 
+            ? IconButton(
+                icon: Icon(obscureText ? Icons.visibility_off : Icons.visibility, color: Colors.grey),
+                onPressed: onSuffixTap,
+              )
+            : null
         ),
       ),
     );

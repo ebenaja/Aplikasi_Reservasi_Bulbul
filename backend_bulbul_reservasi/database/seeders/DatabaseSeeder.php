@@ -2,31 +2,39 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-        $this->call([
-            RolesSeeder::class,
-            UsersSeeder::class,
+        // 1. ISI TABEL ROLES (Manual disini agar aman)
+        // Pastikan menggunakan 'nama_role' bukan 'name'
+        DB::table('roles')->insertOrIgnore([
+            ['id' => 1, 'nama_role' => 'admin', 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 2, 'nama_role' => 'user', 'created_at' => now(), 'updated_at' => now()],
         ]);
 
-
-        User::factory()->create([
-            'nama' => 'Test User',
-            'email' => 'test@example.com',
-            'role_id' => 2, // atau role_id sesuai kebutuhan
+        // 2. BUAT AKUN ADMIN
+        User::create([
+            'nama' => 'Admin Pantai',
+            'email' => 'admin@bulbul.com',
+            'password' => Hash::make('admin123'), // Password Admin
+            'role_id' => 1, // 1 = Admin
         ]);
 
+        // 3. BUAT AKUN USER (PENGUNJUNG)
+        User::create([
+            'nama' => 'Eben',
+            'email' => 'eben@gmail.com',
+            'password' => Hash::make('eben1106'), // Password User
+            'role_id' => 2, // 2 = User
+        ]);
     }
 }

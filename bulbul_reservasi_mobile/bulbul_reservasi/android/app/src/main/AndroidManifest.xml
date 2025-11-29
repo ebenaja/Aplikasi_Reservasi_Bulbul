@@ -1,21 +1,33 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.bulbul_reservasi">
 
-    <!-- 1. TAMBAHKAN IZIN INTERNET (Sudah ada sebelumnya) -->
+    <!-- ========================================================= -->
+    <!-- 1. IZIN AKSES (PERMISSIONS)                               -->
+    <!-- ========================================================= -->
+    
+    <!-- Internet (Wajib untuk API) -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
-    <!-- 2. TAMBAHKAN IZIN GALERI & PENYIMPANAN (BARU) -->
+    <!-- Galeri & Penyimpanan (Untuk Android 10 ke bawah) -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    
+    <!-- Galeri (Untuk Android 13+) -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    
+    <!-- Kamera -->
     <uses-permission android:name="android.permission.CAMERA"/>
 
+    <!-- ========================================================= -->
+    <!-- 2. KONFIGURASI APLIKASI                                   -->
+    <!-- ========================================================= -->
     <application
         android:label="Bulbul Holidays"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon"
-        android:usesCleartextTraffic="true"
-        android:requestLegacyExternalStorage="true"> <!-- 3. TAMBAHAN AGAR BISA BACA FILE DI ANDROID LAMA -->
+        android:usesCleartextTraffic="true" 
+        android:requestLegacyExternalStorage="true"
+        android:enableOnBackInvokedCallback="true">
         
         <activity
             android:name=".MainActivity"
@@ -43,14 +55,42 @@
             android:value="2" />
     </application>
     
+    <!-- ========================================================= -->
+    <!-- 3. QUERIES (WAJIB UNTUK ANDROID 11/API 30+)               -->
+    <!-- Tanpa ini, WhatsApp & Kamera akan error/crash             -->
+    <!-- ========================================================= -->
     <queries>
+        <!-- Diperlukan untuk text selection Flutter -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
-        <!-- 4. TAMBAHAN UNTUK MEMBUKA KAMERA/GALERI -->
+        
+        <!-- PENTING: Izin membuka URL eksternal (WhatsApp, Browser) -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="*/*" />
+        </intent>
+
+        <!-- PENTING: Izin membuka Kamera & Galeri -->
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.GET_CONTENT" />
+            <data android:mimeType="*/*" />
         </intent>
     </queries>
 </manifest>

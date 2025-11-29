@@ -3,14 +3,13 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UlasanService {
-  // Ganti IP sesuai laptop Anda
+  // Sesuaikan IP
   final String baseUrl = 'http://10.0.2.2:8000/api'; 
 
-  // 1. Ambil Ulasan Terbaru (Untuk Beranda)
+  // 1. Ambil Ulasan Terbaru (Public)
   Future<List<dynamic>> getRecentUlasan() async {
     try {
       final response = await http.get(Uri.parse('$baseUrl/ulasan-terbaru'));
-      
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
         return json['data']; 
@@ -22,7 +21,7 @@ class UlasanService {
     }
   }
 
-  // 2. Kirim Ulasan (Untuk nanti)
+  // 2. Kirim Ulasan (Protected)
   Future<bool> kirimUlasan(int fasilitasId, int rating, String komentar) async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -41,11 +40,7 @@ class UlasanService {
           'komentar': komentar,
         }),
       );
-
       return response.statusCode == 201;
-    } catch (e) {
-      print("Error Kirim Ulasan: $e");
-      return false;
-    }
+    } catch (e) { return false; }
   }
 }

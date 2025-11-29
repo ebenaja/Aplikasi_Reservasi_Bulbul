@@ -11,13 +11,19 @@ class FinancialReportScreen extends StatefulWidget {
 
 class _FinancialReportScreenState extends State<FinancialReportScreen> {
   final AdminService _service = AdminService();
-  final Color mainColor = Color(0xFF50C2C9);
   
+  // Palette Warna Profesional
+  final Color mainColor = const Color(0xFF50C2C9);
+  final Color secondaryColor = const Color(0xFF2E8B91);
+  final Color bgPage = const Color(0xFFF5F7FA);
+  final Color cardColor = Colors.white;
+
   bool _isLoading = true;
   
   // Variabel Data
   double totalPendapatan = 0;
   int totalTransaksi = 0;
+  double rataRataTransaksi = 0; // Metric tambahan
   List<dynamic> fasilitasPopuler = [];
   List<dynamic> transaksiTerbaru = [];
 
@@ -28,33 +34,75 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
   }
 
   void _fetchData() async {
-    final data = await _service.getStatistics();
-    if (mounted) {
-      setState(() {
-        totalPendapatan = double.parse(data['total_pendapatan']?.toString() ?? '0');
-        totalTransaksi = int.parse(data['total_transaksi']?.toString() ?? '0');
-        fasilitasPopuler = data['fasilitas_populer'] ?? [];
-        transaksiTerbaru = data['transaksi_terbaru'] ?? [];
-        _isLoading = false;
-      });
+    try {
+      final data = await _service.getStatistics();
+      if (mounted) {
+        setState(() {
+          totalPendapatan = double.tryParse(data['total_pendapatan']?.toString() ?? '0') ?? 0;
+          totalTransaksi = int.tryParse(data['total_transaksi']?.toString() ?? '0') ?? 0;
+          
+          // Hitung Rata-rata per transaksi (Kompleksitas Data)
+          if (totalTransaksi > 0) {
+            rataRataTransaksi = totalPendapatan / totalTransaksi;
+          }
+
+          fasilitasPopuler = data['fasilitas_populer'] ?? [];
+          transaksiTerbaru = data['transaksi_terbaru'] ?? [];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error Fetch Stats: $e");
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // Helper Format Rupiah
+  // --- HELPER FORMATTING ---
   String formatRupiah(double amount) {
     return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
+  }
+
+  String formatDate(String? dateStr) {
+    if (dateStr == null) return "-";
+    try {
+      DateTime dt = DateTime.parse(dateStr);
+      return DateFormat('dd MMM yyyy, HH:mm').format(dt);
+    } catch (e) {
+      return dateStr;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF0F4F3),
+      backgroundColor: bgPage,
+      
+      // APP BAR GRADIENT
       appBar: AppBar(
-        title: Text("Laporan Keuangan", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: mainColor,
-        foregroundColor: Colors.white,
+        title: Text("Analitik Keuangan", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [mainColor, secondaryColor],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         elevation: 0,
+        centerTitle: true,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: Icon(Icons.print_rounded),
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Fitur Cetak Laporan (Segera Hadir)")));
+            },
+            tooltip: "Cetak Laporan",
+          )
+        ],
       ),
+
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: mainColor))
           : SingleChildScrollView(
@@ -62,125 +110,240 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Ringkasan Total", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 15),
-                  
-                  // 1. KARTU RINGKASAN (Revenue & Count)
+                  // --- 1. FILTER TANGGAL (Visual UI) ---
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildSummaryCard("Total Pendapatan", formatRupiah(totalPendapatan), Icons.monetization_on, Colors.green),
-                      SizedBox(width: 15),
-                      _buildSummaryCard("Total Transaksi", "$totalTransaksi Pesanan", Icons.shopping_cart, Colors.orange),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Overview", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+                          Text("Update terakhir: ${DateFormat('HH:mm').format(DateTime.now())}", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        ],
+                      ),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.grey[300]!)
+                        ),
+                        child: Row(
+                          children: [
+                            Text("Bulan Ini", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700])),
+                            SizedBox(width: 5),
+                            Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.grey[700])
+                          ],
+                        ),
+                      )
                     ],
                   ),
 
-                  SizedBox(height: 30),
-                  Text("Fasilitas Terlaris", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 15),
+                  SizedBox(height: 20),
 
-                  // 2. LIST FASILITAS TERPOPULER
-                  Container(
-                    padding: EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)],
+                  // --- 2. KEY METRICS CARDS (Revenue, Orders, Avg) ---
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildStatCard("Total Pendapatan", formatRupiah(totalPendapatan), Icons.account_balance_wallet, Colors.green, "+12%"),
+                        SizedBox(width: 15),
+                        _buildStatCard("Total Pesanan", "$totalTransaksi", Icons.shopping_bag, Colors.orange, "+5"),
+                        SizedBox(width: 15),
+                        _buildStatCard("Rata-rata Order", formatRupiah(rataRataTransaksi), Icons.analytics, Colors.blue, "~"),
+                      ],
                     ),
-                    child: fasilitasPopuler.isEmpty
-                      ? Text("Belum ada data")
-                      : Column(
-                          children: fasilitasPopuler.map((item) {
-                            // Hitung persentase sederhana untuk bar (maksimal anggap 10 pesanan sbg 100% dummy logic)
-                            int count = item['total_pesanan'];
-                            String nama = item['fasilitas']?['nama_fasilitas'] ?? 'Item Dihapus';
-                            
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  ),
+
+                  SizedBox(height: 30),
+
+                  // --- 3. LEADERBOARD (Fasilitas Terlaris) ---
+                  Text("Performa Fasilitas", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  SizedBox(height: 15),
+                  Container(
+                    padding: EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: Offset(0, 5))],
+                    ),
+                    child: Column(
+                      children: [
+                        if (fasilitasPopuler.isEmpty) 
+                          Padding(padding: EdgeInsets.all(20), child: Text("Belum ada data penjualan", style: TextStyle(color: Colors.grey))),
+                        
+                        ...fasilitasPopuler.asMap().entries.map((entry) {
+                          int idx = entry.key;
+                          var item = entry.value;
+                          int count = int.tryParse(item['total_pesanan'].toString()) ?? 0;
+                          String nama = item['fasilitas']?['nama_fasilitas'] ?? 'Item Dihapus';
+                          
+                          // Kalkulasi persentase bar
+                          int maxVal = fasilitasPopuler.isEmpty ? 1 : int.tryParse(fasilitasPopuler[0]['total_pesanan'].toString()) ?? 1;
+                          double percent = (maxVal == 0) ? 0 : (count / maxVal);
+
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 15.0),
+                            child: Row(
+                              children: [
+                                // Rank Badge
+                                Container(
+                                  width: 30, height: 30,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: idx == 0 ? Colors.amber.withOpacity(0.2) : (idx == 1 ? Colors.grey[200] : Colors.orange[50]),
+                                    shape: BoxShape.circle
+                                  ),
+                                  child: Text(
+                                    "${idx + 1}", 
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: idx == 0 ? Colors.orange[800] : Colors.grey[700])
+                                  ),
+                                ),
+                                SizedBox(width: 15),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(nama, style: TextStyle(fontWeight: FontWeight.bold)),
-                                      Text("$count Pesanan", style: TextStyle(color: mainColor, fontWeight: FontWeight.bold)),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(nama, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                                          Text("$count Terjual", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: mainColor)),
+                                        ],
+                                      ),
+                                      SizedBox(height: 6),
+                                      // Progress Bar Modern
+                                      Stack(
+                                        children: [
+                                          Container(height: 8, decoration: BoxDecoration(color: Colors.grey[100], borderRadius: BorderRadius.circular(4))),
+                                          FractionallySizedBox(
+                                            widthFactor: percent,
+                                            child: Container(
+                                              height: 8, 
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(colors: [mainColor.withOpacity(0.6), mainColor]),
+                                                borderRadius: BorderRadius.circular(4)
+                                              )
+                                            ),
+                                          ),
+                                        ],
+                                      )
                                     ],
                                   ),
-                                  SizedBox(height: 5),
-                                  // Bar Chart Sederhana
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(5),
-                                    child: LinearProgressIndicator(
-                                      value: (count / (totalTransaksi == 0 ? 1 : totalTransaksi)), // Persentase relatif total
-                                      minHeight: 8,
-                                      backgroundColor: Colors.grey[200],
-                                      valueColor: AlwaysStoppedAnimation<Color>(mainColor),
-                                    ),
-                                  )
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        ),
+                                )
+                              ],
+                            ),
+                          );
+                        }).toList()
+                      ],
+                    ),
                   ),
 
                   SizedBox(height: 30),
-                  Text("Transaksi Terbaru", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+
+                  // --- 4. TABEL TRANSAKSI TERBARU (Clean List) ---
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Transaksi Terbaru", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                      Text("Lihat Semua", style: TextStyle(color: mainColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                    ],
+                  ),
                   SizedBox(height: 15),
 
-                  // 3. LIST RIWAYAT TRANSAKSI TERBARU
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: transaksiTerbaru.length,
-                    itemBuilder: (context, index) {
-                      final item = transaksiTerbaru[index];
-                      return Card(
-                        margin: EdgeInsets.only(bottom: 10),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: mainColor.withOpacity(0.1),
-                            child: Icon(Icons.receipt_long, color: mainColor),
-                          ),
-                          title: Text(item['fasilitas']['nama_fasilitas'] ?? '-', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                          subtitle: Text("${item['user']['nama']} • ${item['tanggal_sewa']}", style: TextStyle(fontSize: 12)),
-                          trailing: Text(
-                            "Rp ${NumberFormat('#,###', 'id_ID').format(double.parse(item['total_harga']))}",
-                            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                  transaksiTerbaru.isEmpty
+                    ? Center(child: Text("Belum ada transaksi.", style: TextStyle(color: Colors.grey)))
+                    : ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: transaksiTerbaru.length,
+                        itemBuilder: (context, index) {
+                          final item = transaksiTerbaru[index];
+                          final harga = double.tryParse(item['total_harga']?.toString() ?? '0') ?? 0;
+                          
+                          return Container(
+                            margin: EdgeInsets.only(bottom: 12),
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(15),
+                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: Offset(0, 3))],
+                            ),
+                            child: Row(
+                              children: [
+                                // Icon Box
+                                Container(
+                                  padding: EdgeInsets.all(10),
+                                  decoration: BoxDecoration(color: Colors.green[50], shape: BoxShape.circle),
+                                  child: Icon(Icons.arrow_downward_rounded, color: Colors.green, size: 20),
+                                ),
+                                SizedBox(width: 15),
+                                // Info Transaksi
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(item['fasilitas']['nama_fasilitas'] ?? '-', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        "${item['user']['nama']} • ${formatDate(item['created_at'])}", 
+                                        style: TextStyle(fontSize: 11, color: Colors.grey[500])
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Harga
+                                Text(
+                                  formatRupiah(harga),
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black87, fontSize: 14),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
                   
-                  if (transaksiTerbaru.isEmpty) Text("Belum ada transaksi.", style: TextStyle(color: Colors.grey)),
+                  SizedBox(height: 30),
                 ],
               ),
             ),
     );
   }
 
-  // Widget Helper: Kartu Ringkasan
-  Widget _buildSummaryCard(String title, String value, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          border: Border(left: BorderSide(color: color, width: 4)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 5)],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color, size: 28),
-            SizedBox(height: 10),
-            Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-            SizedBox(height: 4),
-            Text(title, style: TextStyle(fontSize: 12, color: Colors.grey)),
-          ],
-        ),
+  // WIDGET KARTU STATISTIK (Didesain Lebar dan Horizontal Scrollable)
+  Widget _buildStatCard(String title, String value, IconData icon, Color color, String growth) {
+    return Container(
+      width: 160, // Fixed width agar rapi di horizontal scroll
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              // Indikator kenaikan (Dummy visual)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(10)),
+                child: Text(growth, style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+              )
+            ],
+          ),
+          SizedBox(height: 15),
+          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis),
+          SizedBox(height: 5),
+          Text(title, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+        ],
       ),
     );
   }

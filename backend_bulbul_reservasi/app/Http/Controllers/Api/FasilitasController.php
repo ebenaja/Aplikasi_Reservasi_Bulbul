@@ -32,6 +32,7 @@ class FasilitasController extends Controller
             'harga'          => 'required|numeric',
             'stok'           => 'required|integer',
             'foto'           => 'nullable',
+            'is_promo'       => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -54,6 +55,7 @@ class FasilitasController extends Controller
             'stok'           => $request->stok,
             'status'         => $request->status ?? 'tersedia',
             'foto'           => $pathFoto,
+            'is_promo'       => $request->is_promo ?? false,
         ]);
 
         return response()->json([
@@ -90,6 +92,7 @@ class FasilitasController extends Controller
             'stok'           => $request->stok ?? $fasilitas->stok,
             'status'         => $request->status ?? $fasilitas->status,
             'foto'           => $pathFoto,
+            'is_promo'       => $request->is_promo ?? $fasilitas->is_promo,
         ]);
 
         return response()->json([

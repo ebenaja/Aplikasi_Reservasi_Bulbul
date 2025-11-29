@@ -10,10 +10,10 @@ class AuthService {
   // Gunakan 10.0.2.2 jika pakai Emulator Android.
   // Gunakan IP Laptop (misal 192.168.1.x) jika pakai HP Fisik.
   // --------------------------------------------------------------------------
-final String baseUrl = 'http://10.0.2.2:8000/api'; 
+  final String baseUrl = 'http://10.0.2.2:8000/api'; 
 
   // ==========================================================================
-  // 1. FUNGSI LOGIN (REVISI ROBUST / TAHAN BANTING)
+  // 1. FUNGSI LOGIN (ROBUST)
   // ==========================================================================
   Future<Map<String, dynamic>> login(String email, String password) async {
     final url = Uri.parse('$baseUrl/login');
@@ -31,32 +31,34 @@ final String baseUrl = 'http://10.0.2.2:8000/api';
         }),
       );
 
-      print("🔵 RESPON SERVER: ${response.body}"); // Cek di Debug Console
+      print("🔵 RESPON SERVER: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // --- LOGIKA DETEKSI FORMAT JSON (Agar tidak Null) ---
         String token = "";
         Map<String, dynamic> user = {};
 
-        // 1. Cek Token (Bisa 'token', 'access_token', atau di dalam 'data')
+        // 1. Cek Token
         if (data['token'] != null) {
           token = data['token'];
-        } else if (data['access_token'] != null) token = data['access_token'];
-        else if (data['data'] != null && data['data']['token'] != null) token = data['data']['token'];
+        } else if (data['access_token'] != null) {
+          token = data['access_token'];
+        } else if (data['data'] != null && data['data']['token'] != null) {
+          token = data['data']['token'];
+        }
 
-        // 2. Cek User (Bisa 'user', 'data.user', atau langsung di root)
+        // 2. Cek User
         if (data['user'] != null) {
           user = data['user'];
-        } else if (data['data'] != null && data['data']['user'] != null) user = data['data']['user'];
+        } else if (data['data'] != null && data['data']['user'] != null) {
+          user = data['data']['user'];
+        }
         
-        // Jika user kosong, coba cari nama langsung di root (fallback)
         if (user.isEmpty && data['name'] != null) {
           user = {'name': data['name'], 'role': 'user'}; 
         }
 
-        // JIKA TOKEN TIDAK DITEMUKAN
         if (token.isEmpty) {
           return {"status": 500, "message": "Token tidak ditemukan di respon server."};
         }
@@ -65,17 +67,15 @@ final String baseUrl = 'http://10.0.2.2:8000/api';
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
         await prefs.setString('user_name', user['name'] ?? user['nama'] ?? 'User');
+        await prefs.setString('user_email', email); // Simpan email juga untuk profile
         
         // 4. Ambil Role
         String role = "user";
         if (user['role'] != null) {
           role = user['role'].toString();
         } else if (user['roles'] != null && user['roles'] is List && (user['roles'] as List).isNotEmpty) {
-           // Jika formatnya array roles: [{"name": "admin"}]
            role = user['roles'][0]['name']; 
-        }
-        // Fallback manual jika role kosong tapi email mengandung 'admin'
-        else if (email.toLowerCase().contains('admin')) {
+        } else if (email.toLowerCase().contains('admin')) {
           role = "admin"; 
         }
 
@@ -89,7 +89,6 @@ final String baseUrl = 'http://10.0.2.2:8000/api';
         };
 
       } else {
-        // Error dari server (401/422)
         final errorData = jsonDecode(response.body);
         return {
           "status": response.statusCode,
@@ -100,7 +99,6 @@ final String baseUrl = 'http://10.0.2.2:8000/api';
       if (e is SocketException) {
         return {"status": 503, "message": "Gagal terhubung. Cek server/internet."};
       }
-      print("🔴 Error Login: $e");
       return {"status": 500, "message": "Terjadi kesalahan aplikasi."};
     }
   }
@@ -122,31 +120,103 @@ final String baseUrl = 'http://10.0.2.2:8000/api';
           'name': name,
           'email': email,
           'password': password,
-          'password_confirmation': password, // Laravel biasanya butuh ini
+          'password_confirmation': password,
         }),
       );
-      
       return response;
     } catch (e) {
-      print("🔴 Error Register: $e");
       return http.Response('{"message": "Gagal terhubung ke server"}', 503);
     }
   }
 
   // ==========================================================================
-  // 3. FUNGSI LOGOUT
+  // 3. FUNGSI UPDATE NAMA (BARU)
+  // ==========================================================================
+  Future<bool> updateProfileName(String newName) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final url = Uri.parse('$baseUrl/update-profile'); // Pastikan route ini ada di API Laravel
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token', // Kirim Token Auth
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'name': newName, // Sesuai field database 'users'
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        // Jika sukses di database, update juga di memori HP
+        await prefs.setString('user_name', newName);
+        return true;
+      } else {
+        print("Gagal update nama: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("Error Update Profile: $e");
+      return false;
+    }
+  }
+
+  // ==========================================================================
+  // 4. FUNGSI GANTI PASSWORD (BARU)
+  // ==========================================================================
+  Future<Map<String, dynamic>> changePassword(String currentPass, String newPass) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+    final url = Uri.parse('$baseUrl/change-password'); // Pastikan route ini ada di API Laravel
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'current_password': currentPass,
+          'new_password': newPass,
+          'new_password_confirmation': newPass, // Laravel biasanya butuh konfirmasi
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {'success': true, 'message': 'Password berhasil diubah'};
+      } else {
+        // Ambil pesan error dari Laravel (misal: Password lama salah)
+        String msg = data['message'] ?? 'Gagal mengubah password';
+        if (data['errors'] != null) {
+          msg = data['errors'].toString();
+        }
+        return {'success': false, 'message': msg};
+      }
+    } catch (e) {
+      return {'success': false, 'message': 'Kesalahan koneksi'};
+    }
+  }
+
+  // ==========================================================================
+  // 5. FUNGSI LOGOUT
   // ==========================================================================
   Future<bool> logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('token');
 
-      // Hapus data lokal dulu (Prioritas)
+      // Hapus data lokal
       await prefs.clear();
 
       if (token != null) {
         final url = Uri.parse('$baseUrl/logout');
-        // Request hapus token di database
         await http.post(
           url,
           headers: {
@@ -158,8 +228,6 @@ final String baseUrl = 'http://10.0.2.2:8000/api';
       return true;
 
     } catch (e) {
-      print("🔴 Error Logout: $e");
-      // Tetap return true agar user bisa keluar dari tampilan aplikasi
       return true; 
     }
   }

@@ -5,37 +5,43 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Pembayaran;
-use App\Models\Reservasi;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class PembayaranController extends Controller
 {
-public function store(Request $request)
+    public function store(Request $request)
     {
-        // 1. Validasi (Ubah 'bukti' jadi string, bukan image)
+        // 1. Validasi (UBAH DISINI)
+        // Hapus 'image|mimes:...' agar bisa terima teks nomor referensi
         $validator = Validator::make($request->all(), [
             'reservasi_id' => 'required|exists:reservasis,id',
-            'bukti'        => 'required|string', // SEKARANG STRING (No. Referensi)
+            'bukti'        => 'required', // Cukup required saja (bisa file atau string)
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // 2. Tidak perlu upload file, langsung simpan stringnya
-        $buktiTransaksi = $request->bukti;
+        $pathBukti = $request->bukti;
 
-        // 3. Simpan ke Tabel Pembayarans
+        // 2. Cek apakah inputnya File Gambar atau Teks Biasa
+        if ($request->hasFile('bukti')) {
+            // Jika user upload gambar
+            $path = $request->file('bukti')->store('bukti_pembayaran', 'public');
+            $pathBukti = asset('storage/' . $path);
+        }
+        // Jika tidak ada file, berarti $pathBukti berisi string No. Referensi dari Flutter
+
+        // 3. Simpan ke Database
         $pembayaran = Pembayaran::create([
             'reservasi_id' => $request->reservasi_id,
-            'bukti'        => $buktiTransaksi, // Menyimpan No. Ref
+            'bukti'        => $pathBukti, // Isi URL gambar atau No. Referensi
             'status'       => 'menunggu',
         ]);
 
         return response()->json([
             'status' => 201,
-            'message' => 'Konfirmasi pembayaran berhasil dikirim',
+            'message' => 'Bukti pembayaran berhasil dikirim',
             'data' => $pembayaran
         ], 201);
     }
