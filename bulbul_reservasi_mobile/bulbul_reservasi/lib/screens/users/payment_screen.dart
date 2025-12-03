@@ -8,7 +8,12 @@ class PaymentScreen extends StatefulWidget {
   final String itemName;
   final double pricePerUnit;
 
-  const PaymentScreen({super.key, required this.fasilitasId, required this.itemName, required this.pricePerUnit});
+  const PaymentScreen({
+    super.key, 
+    required this.fasilitasId, 
+    required this.itemName, 
+    required this.pricePerUnit
+  });
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -19,7 +24,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final Color mainColor = const Color(0xFF50C2C9);
   final Color secondaryColor = const Color(0xFF2E8B91);
 
-  DateTime _selectedDate = DateTime.now();
+  // REVISI: Default tanggal BESOK
+  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
   int _durasi = 1;
   bool _isLoading = false;
 
@@ -30,10 +36,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    final DateTime tomorrow = DateTime.now().add(const Duration(days: 1));
+
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now(),
+      initialDate: _selectedDate.isBefore(tomorrow) ? tomorrow : _selectedDate,
+      // REVISI: Batas awal tanggal adalah BESOK
+      firstDate: tomorrow, 
       lastDate: DateTime(2030),
       builder: (context, child) {
         return Theme(
@@ -49,21 +58,46 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   void _processPayment() async {
     setState(() => _isLoading = true);
+    
     String dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    
     Map<String, dynamic> data = {
       'fasilitas_id': widget.fasilitasId,
       'tanggal_sewa': dateString,
       'durasi': _durasi,
       'total_harga': _totalHarga,
+      'jam_mulai': '08:00:00' // Default jam
     };
 
-    bool success = await _reservasiService.createReservasi(data);
+    // Panggil Service Baru (return Map)
+    final result = await _reservasiService.createReservasi(data);
+    
     setState(() => _isLoading = false);
 
-    if (success) {
-      if (mounted) Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => PaymentInstructionScreen(totalHarga: _totalHarga)));
+    if (result['success'] == true) {
+      if (mounted) {
+        // SUKSES: Pindah ke Instruksi
+        Navigator.pushReplacement(
+          context, 
+          MaterialPageRoute(
+            builder: (context) => PaymentInstructionScreen(
+              totalHarga: _totalHarga,
+              // Kirim ID reservasi agar nanti bisa dipakai upload bukti (opsional)
+              reservasiId: result['data']['id'] 
+            )
+          )
+        );
+      }
     } else {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Gagal membuat pesanan."), backgroundColor: Colors.red));
+      // GAGAL: Tampilkan Pesan Error (Misal Stok Habis)
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']), // Pesan dari Laravel
+            backgroundColor: Colors.red
+          )
+        );
+      }
     }
   }
 
@@ -127,7 +161,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text("Tanggal Sewa", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                        Text("Tanggal Sewa (Mulai Besok)", style: TextStyle(fontSize: 12, color: Colors.grey)),
                         SizedBox(height: 2),
                         Text(displayDate, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                       ],

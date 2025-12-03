@@ -9,12 +9,8 @@ class ManageReservasiScreen extends StatefulWidget {
 
 class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
   final AdminService _service = AdminService();
-  
-  // Warna Palette
   final Color mainColor = const Color(0xFF50C2C9);
-  final Color secondaryColor = const Color(0xFF2E8B91);
-  final Color bgPage = const Color(0xFFF5F7FA);
-
+  
   List<dynamic> _reservasi = [];
   bool _isLoading = true;
 
@@ -52,7 +48,32 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
     }
   }
 
-  // --- DIALOG BUKTI MODERN ---
+  // --- FUNGSI HAPUS DATA ---
+  void _deleteItem(int id) async {
+    bool confirm = await showDialog(
+      context: context, 
+      builder: (ctx) => AlertDialog(
+        title: Text("Hapus Data?"),
+        content: Text("Data reservasi ini akan dihapus permanen."),
+        actions: [
+          TextButton(onPressed: ()=>Navigator.pop(ctx, false), child: Text("Batal")),
+          TextButton(onPressed: ()=>Navigator.pop(ctx, true), child: Text("Hapus", style: TextStyle(color: Colors.red))),
+        ],
+      )
+    ) ?? false;
+
+    if (confirm) {
+      // Pastikan fungsi deleteReservasi sudah ada di AdminService
+      bool success = await _service.deleteReservasi(id);
+      if (success) {
+        _fetchData();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Data berhasil dihapus"), backgroundColor: Colors.red));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Gagal menghapus"), backgroundColor: Colors.grey));
+      }
+    }
+  }
+
   void _showBuktiDialog(String? bukti, String userName) {
     bool isImage = bukti != null && (bukti.startsWith('http') || bukti.contains('storage'));
 
@@ -114,15 +135,6 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
                       style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, letterSpacing: 2, color: Colors.black87),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 15),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.info_outline, size: 14, color: Colors.blue),
-                        SizedBox(width: 5),
-                        Text("Cek mutasi bank Anda", style: TextStyle(fontSize: 12, color: Colors.blue)),
-                      ],
-                    )
                   ],
                 ),
               )
@@ -140,7 +152,6 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
     );
   }
 
-  // Helper Warna Status
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'pending': return Colors.orange;
@@ -153,7 +164,6 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
     }
   }
 
-  // Helper Text Status
   String _getStatusText(String status) {
     switch (status.toLowerCase()) {
       case 'pending': return "Belum Bayar";
@@ -168,24 +178,14 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgPage,
-      
-      // HEADER GRADIENT
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         title: Text("Manajemen Reservasi", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [mainColor, secondaryColor],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-          ),
-        ),
+        backgroundColor: mainColor,
+        foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
       ),
-      
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: mainColor))
           : _reservasi.isEmpty
@@ -194,7 +194,7 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
                   children: [
                     Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey[300]),
                     SizedBox(height: 15),
-                    Text("Belum ada data reservasi masuk.", style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+                    Text("Belum ada data reservasi.", style: TextStyle(color: Colors.grey[600], fontSize: 16)),
                   ],
                 ))
               : ListView.builder(
@@ -206,12 +206,14 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
   }
 
   Widget _buildReservasiCard(Map<String, dynamic> item) {
+    // --- PERBAIKAN UTAMA DI SINI: DEFINISI VARIABEL ID ---
+    final int id = item['id']; // Definisikan ID di sini agar bisa dipanggil di bawah
+    
     final user = item['user'] ?? {'nama': 'User Terhapus'};
     final fasilitas = item['fasilitas'] ?? {'nama_fasilitas': 'Fasilitas Terhapus'};
     final pembayaran = item['pembayaran']; 
     final String? dataBukti = pembayaran != null ? pembayaran['bukti'] : null;
     final status = item['status'] ?? 'pending';
-
     bool isImageBukti = dataBukti != null && (dataBukti.startsWith('http') || dataBukti.contains('storage'));
 
     return Container(
@@ -224,9 +226,9 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- HEADER CARD (ID & TANGGAL) ---
+          // --- HEADER CARD (ID & TANGGAL + HAPUS) ---
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.grey[50],
               borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -235,24 +237,30 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Kiri: ID & Status
                 Row(
                   children: [
-                    Icon(Icons.tag, size: 16, color: Colors.grey),
-                    Text("Order ID: ${item['id']}", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700])),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: _getStatusColor(status).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8)
+                      ),
+                      child: Text(
+                        "#$id - ${_getStatusText(status).toUpperCase()}", 
+                        style: TextStyle(color: _getStatusColor(status), fontWeight: FontWeight.bold, fontSize: 11)
+                      ),
+                    ),
                   ],
                 ),
-                // Badge Status
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(status).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _getStatusColor(status).withOpacity(0.2))
-                  ),
-                  child: Text(
-                    _getStatusText(status).toUpperCase(), 
-                    style: TextStyle(color: _getStatusColor(status), fontWeight: FontWeight.bold, fontSize: 10)
-                  ),
+                
+                // Kanan: Tombol Hapus
+                IconButton(
+                  icon: Icon(Icons.delete_outline, color: Colors.red[300], size: 20),
+                  onPressed: () => _deleteItem(id), // Panggil fungsi hapus dengan ID
+                  tooltip: "Hapus Data",
+                  constraints: BoxConstraints(), 
+                  padding: EdgeInsets.zero,
                 )
               ],
             ),
@@ -264,13 +272,11 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar User
                 CircleAvatar(
                   backgroundColor: mainColor.withOpacity(0.1),
                   child: Text(user['nama'][0].toUpperCase(), style: TextStyle(color: mainColor, fontWeight: FontWeight.bold)),
                 ),
                 SizedBox(width: 15),
-                // Detail
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,7 +298,6 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Row(
               children: [
-                // TOMBOL LIHAT BUKTI
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: () => _showBuktiDialog(dataBukti, user['nama']),
@@ -315,7 +320,6 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
                 
                 SizedBox(width: 10),
 
-                // TOMBOL UBAH STATUS (DROPDOWN)
                 Expanded(
                   child: PopupMenuButton<String>(
                     offset: Offset(0, 40),
@@ -338,28 +342,15 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
                     ),
                     onSelected: (val) => _updateStatus(item['id'], val),
                     itemBuilder: (context) => [
-                      _buildMenuItem('dibayar', Icons.verified_user_outlined, Colors.purple, "Terima Bayar"),
-                      _buildMenuItem('selesai', Icons.check_circle_outline, Colors.green, "Selesai (Liburan)"),
-                      _buildMenuItem('batal', Icons.cancel_outlined, Colors.red, "Tolak / Batal"),
+                      PopupMenuItem(value: 'dibayar', child: Text("Terima Bayar (Lunas)")),
+                      PopupMenuItem(value: 'selesai', child: Text("Selesai (Liburan)")),
+                      PopupMenuItem(value: 'batal', child: Text("Tolak / Batal", style: TextStyle(color: Colors.red))),
                     ],
                   ),
                 ),
               ],
             ),
           )
-        ],
-      ),
-    );
-  }
-
-  PopupMenuItem<String> _buildMenuItem(String value, IconData icon, Color color, String text) {
-    return PopupMenuItem(
-      value: value,
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 20),
-          SizedBox(width: 12),
-          Text(text, style: TextStyle(fontWeight: FontWeight.w500)),
         ],
       ),
     );

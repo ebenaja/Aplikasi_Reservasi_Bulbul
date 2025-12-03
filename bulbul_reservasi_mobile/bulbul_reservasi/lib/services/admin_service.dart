@@ -67,6 +67,19 @@ class AdminService {
     } catch (e) { return false; }
   }
 
+    // HAPUS RESERVASI (ADMIN)
+  Future<bool> deleteReservasi(int id) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/reservasi/$id'), 
+        headers: await _getHeaders()
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
   // GET ULASAN
   Future<List<dynamic>> getUlasan() async {
     try {

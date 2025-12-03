@@ -40,6 +40,13 @@ class AdminController extends Controller
         return response()->json(['message' => 'Data tidak ditemukan'], 404);
     }
 
+        // HAPUS RESERVASI (ADMIN)
+    public function deleteReservasi($id)
+    {
+        Reservasi::destroy($id);
+        return response()->json(['message' => 'Reservasi dihapus']);
+    }
+    
     // 4. GET ALL ULASAN
     public function getAllUlasan()
     {

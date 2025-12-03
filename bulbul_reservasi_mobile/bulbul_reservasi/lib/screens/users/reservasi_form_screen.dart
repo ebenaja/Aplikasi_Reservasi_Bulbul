@@ -29,8 +29,8 @@ class _ReservasiFormScreenState extends State<ReservasiFormScreen> {
   final Color secondaryColor = const Color(0xFF2E8B91);
   final Color bgPage = const Color(0xFFF5F7FA);
 
-  DateTime _selectedDate = DateTime.now();
-  TimeOfDay _selectedTime = TimeOfDay.now();
+  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1)); // Default Besok
+  TimeOfDay _selectedTime = TimeOfDay(hour: 8, minute: 0); // Default Jam 8 Pagi
   int _durasi = 1;
   bool _isLoading = false;
 
@@ -41,13 +41,14 @@ class _ReservasiFormScreenState extends State<ReservasiFormScreen> {
     return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
   }
 
-  // Fungsi Pilih Tanggal
+  // Fungsi Pilih Tanggal (Mulai Besok)
   Future<void> _selectDate(BuildContext context) async {
+    final DateTime tomorrow = DateTime.now().add(const Duration(days: 1));
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(Duration(days: 30)), // Bisa pesan sampai 30 hari ke depan
+      initialDate: _selectedDate.isBefore(tomorrow) ? tomorrow : _selectedDate,
+      firstDate: tomorrow,
+      lastDate: DateTime.now().add(const Duration(days: 90)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -81,8 +82,7 @@ class _ReservasiFormScreenState extends State<ReservasiFormScreen> {
     setState(() => _isLoading = true);
 
     String dateString = DateFormat('yyyy-MM-dd').format(_selectedDate);
-    // Format Jam: 14:30
-    String timeString = "${_selectedTime.hour.toString().padLeft(2,'0')}:${_selectedTime.minute.toString().padLeft(2,'0')}";
+    String timeString = "${_selectedTime.hour.toString().padLeft(2,'0')}:${_selectedTime.minute.toString().padLeft(2,'0')}:00";
 
     Map<String, dynamic> data = {
       'fasilitas_id': widget.fasilitasId,
@@ -92,11 +92,13 @@ class _ReservasiFormScreenState extends State<ReservasiFormScreen> {
       'total_harga': _totalHarga,
     };
 
-    bool success = await _reservasiService.createReservasi(data);
+    // PANGGIL SERVICE (Return Map)
+    final result = await _reservasiService.createReservasi(data);
 
     setState(() => _isLoading = false);
 
-    if (success) {
+    // CEK HASIL (bool success ada di dalam Map)
+    if (result['success'] == true) {
       if (mounted) {
         // Dialog Sukses Modern
         showDialog(
@@ -126,7 +128,14 @@ class _ReservasiFormScreenState extends State<ReservasiFormScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       padding: EdgeInsets.symmetric(vertical: 12)
                     ),
-                    onPressed: () => Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen(initialIndex: 2)), (route) => false),
+                    onPressed: () {
+                       // Navigasi ke Tab Pemesanan (Index 2)
+                       Navigator.pushAndRemoveUntil(
+                         context, 
+                         MaterialPageRoute(builder: (_) => HomeScreen(initialIndex: 2)), 
+                         (route) => false
+                       );
+                    },
                     child: Text("Cek Pesanan Saya", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                   ),
                 )
@@ -136,9 +145,14 @@ class _ReservasiFormScreenState extends State<ReservasiFormScreen> {
         );
       }
     } else {
+      // JIKA GAGAL (Tampilkan Pesan Error dari Backend)
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Gagal Reservasi. Stok mungkin habis."), backgroundColor: Colors.red)
+          SnackBar(
+            content: Text(result['message'] ?? "Gagal reservasi."), 
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          )
         );
       }
     }

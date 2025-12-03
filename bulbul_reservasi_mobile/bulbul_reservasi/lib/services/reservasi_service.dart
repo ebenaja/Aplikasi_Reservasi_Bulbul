@@ -1,27 +1,21 @@
 import 'dart:convert';
-import 'dart:io'; // Untuk File gambar
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ReservasiService {
-  // Ganti IP sesuai device (10.0.2.2 untuk Emulator, 192.168.x.x untuk HP Fisik)
+  // Ganti IP sesuai Laptop (10.0.2.2 untuk Emulator)
   final String baseUrl = 'http://10.0.2.2:8000/api'; 
 
-  // ===========================================================================
-  // 1. BUAT RESERVASI (Create)
-  // ===========================================================================
-  Future<bool> createReservasi(Map<String, dynamic> data) async {
+  // 1. BUAT RESERVASI (POST)
+  Future<Map<String, dynamic>> createReservasi(Map<String, dynamic> data) async {
     final url = Uri.parse('$baseUrl/reservasi');
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
-    if (token == null) {
-      print("🔴 Token kosong");
-      return false;
-    }
+    if (token == null) return {'success': false, 'message': 'Belum login'};
 
     try {
-      print("🔵 Kirim Data Reservasi: $data");
       final response = await http.post(
         url,
         headers: {
@@ -32,22 +26,18 @@ class ReservasiService {
         body: jsonEncode(data),
       );
 
-      print("🔵 Status Code: ${response.statusCode}");
-      print("🔵 Response: ${response.body}");
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return true;
+      final responseData = jsonDecode(response.body);
+      if (response.statusCode == 201) {
+        return {'success': true, 'message': 'Berhasil', 'data': responseData['data']};
+      } else {
+        return {'success': false, 'message': responseData['message'] ?? 'Gagal reservasi'};
       }
-      return false;
     } catch (e) {
-      print("🔴 Error Create Reservasi: $e");
-      return false;
+      return {'success': false, 'message': 'Koneksi Error: $e'};
     }
   }
 
-  // ===========================================================================
-  // 2. AMBIL HISTORY (Read)
-  // ===========================================================================
+  // 2. AMBIL RIWAYAT (GET)
   Future<List<dynamic>> getHistory() async {
     final url = Uri.parse('$baseUrl/reservasi/history');
     final prefs = await SharedPreferences.getInstance();
@@ -66,18 +56,18 @@ class ReservasiService {
 
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
-        // Sesuaikan dengan format response Laravel Anda (biasanya dibungkus 'data')
-        return json['data'] ?? json; 
+        return json['data'] ?? []; 
       }
     } catch (e) {
-      print("🔴 Error Get History: $e");
+      print("Error History: $e");
     }
     return [];
   }
 
-  // 3. KONFIRMASI PEMBAYARAN (Tanpa File)
+  // 3. KONFIRMASI PEMBAYARAN (TEXT)
+  // Fungsi ini dipanggil di PemesananTab
   Future<bool> konfirmasiPembayaran(int reservasiId, String noReferensi) async {
-    final url = Uri.parse('$baseUrl/pembayaran'); // Sesuaikan dengan route API
+    final url = Uri.parse('$baseUrl/pembayaran'); 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
@@ -93,27 +83,23 @@ class ReservasiService {
         },
         body: jsonEncode({
           'reservasi_id': reservasiId,
-          'bukti': noReferensi, // Kirim sebagai string teks
-          // Backend harus siap menerima 'bukti' berupa string, bukan file
+          'bukti': noReferensi, // Kirim teks referensi
+          'status': 'menunggu'
         }),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         return true;
       }
       return false;
     } catch (e) {
-      print("Error Konfirmasi: $e");
       return false;
     }
   }
 
-
-  // ===========================================================================
-  // 4. UPLOAD BUKTI (File Gambar)
-  // ===========================================================================
+  // 4. UPLOAD BUKTI (GAMBAR)
   Future<bool> uploadBukti(int reservasiId, File imageFile) async {
-    final url = Uri.parse('$baseUrl/pembayaran'); // Endpoint sama, metode Multipart
+    final url = Uri.parse('$baseUrl/pembayaran'); 
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
@@ -122,30 +108,51 @@ class ReservasiService {
     try {
       var request = http.MultipartRequest('POST', url);
       
-      // Header Auth
       request.headers['Authorization'] = 'Bearer $token';
       request.headers['Accept'] = 'application/json';
 
-      // Data Body
       request.fields['reservasi_id'] = reservasiId.toString();
+      request.fields['status'] = 'menunggu';
       
-      // File Gambar
       request.files.add(await http.MultipartFile.fromPath(
-        'bukti', // Nama field harus 'bukti' sesuai controller Laravel
+        'bukti', 
         imageFile.path
       ));
 
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
 
-      print("🔵 Upload Bukti: ${response.body}");
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
+      if (response.statusCode == 201) {
         return true;
       }
       return false;
     } catch (e) {
-      print("🔴 Error Upload: $e");
+      return false;
+    }
+  }
+ 
+  // 5. BATALKAN RESERVASI
+  Future<bool> cancelReservasi(int reservasiId) async {
+    try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String token = prefs.getString('token') ?? '';
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/reservasi/$reservasiId/cancel'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return true;
+      } else {
+        print("Gagal Batal: ${response.body}");
+        return false;
+      }
+    } catch (e) {
+      print("Error Cancel: $e");
       return false;
     }
   }

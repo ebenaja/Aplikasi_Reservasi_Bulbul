@@ -15,6 +15,7 @@ class Reservasi extends Model
         'user_id',
         'fasilitas_id',
         'tanggal_sewa',
+        'jam_mulai',
         'durasi',
         'total_harga',
         'status', // pending, dibayar, selesai

@@ -5,7 +5,13 @@ import 'package:bulbul_reservasi/screens/users/home_screen.dart';
 
 class PaymentInstructionScreen extends StatelessWidget {
   final double totalHarga;
-  const PaymentInstructionScreen({super.key, required this.totalHarga});
+  final int reservasiId; // Tambahan untuk tracking
+
+  const PaymentInstructionScreen({
+    super.key, 
+    required this.totalHarga, 
+    required this.reservasiId
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +29,12 @@ class PaymentInstructionScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         leading: IconButton(
           icon: Icon(Icons.close),
-          onPressed: () => Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => HomeScreen()), (route) => false),
+          onPressed: () => Navigator.pushAndRemoveUntil(
+            context, 
+            // Kembali ke HOME (Tab 0/Beranda) jika diclose
+            MaterialPageRoute(builder: (_) => HomeScreen(initialIndex: 0)), 
+            (route) => false
+          ),
         ),
       ),
       body: Padding(
@@ -110,7 +121,12 @@ class PaymentInstructionScreen extends StatelessWidget {
               height: 55,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context) => HomeScreen(initialIndex: 2)), (route) => false);
+                  // NAVIGASI KE TAB PEMESANAN (INDEX 2)
+                  Navigator.pushAndRemoveUntil(
+                    context, 
+                    MaterialPageRoute(builder: (context) => HomeScreen(initialIndex: 2)), 
+                    (route) => false
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: mainColor, 

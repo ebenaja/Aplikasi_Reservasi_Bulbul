@@ -20,6 +20,7 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::get('/fasilitas', [FasilitasController::class, 'index']);
 Route::get('/ulasan-terbaru', [UlasanController::class, 'allReviews']);
 Route::get('/ulasan/{fasilitas_id}', [UlasanController::class, 'index']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +42,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Transaksi
     Route::post('/reservasi', [ReservasiController::class, 'store']);
     Route::get('/reservasi/history', [ReservasiController::class, 'history']);
+    Route::post('/reservasi/{id}/cancel', [ReservasiController::class, 'cancel']);
     Route::post('/pembayaran', [PembayaranController::class, 'store']);
 
     // Ulasan
@@ -58,5 +60,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/admin/reservasi/{id}/status', [AdminController::class, 'updateReservasiStatus']);
         Route::get('/admin/ulasan', [AdminController::class, 'getAllUlasan']);
         Route::delete('/admin/ulasan/{id}', [AdminController::class, 'deleteUlasan']);
+        Route::delete('/admin/reservasi/{id}', [AdminController::class, 'deleteReservasi']);
     });
 });
