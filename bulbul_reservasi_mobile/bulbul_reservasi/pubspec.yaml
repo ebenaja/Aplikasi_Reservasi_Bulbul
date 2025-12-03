@@ -13,7 +13,7 @@ dependencies:
   url_launcher: ^6.1.11 
   cupertino_icons: ^1.0.8
   http: ^1.2.0
-  shared_preferences: ^2.2.2
+  shared_preferences: ^2.3.2
   google_fonts: ^6.3.2
   image_picker: ^1.0.7
   
