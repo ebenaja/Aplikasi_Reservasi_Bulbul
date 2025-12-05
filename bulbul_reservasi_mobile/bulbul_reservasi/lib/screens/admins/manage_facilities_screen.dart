@@ -119,7 +119,7 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
                         title: Text("Promo Akhir Pekan?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isPromo ? Colors.orange[800] : Colors.black87)),
                         subtitle: Text("Tampilkan di slider halaman depan.", style: TextStyle(fontSize: 11, color: Colors.grey[600])),
                         value: isPromo,
-                        activeColor: Colors.orange,
+                        activeThumbColor: Colors.orange,
                         secondary: Icon(Icons.local_fire_department_rounded, color: isPromo ? Colors.orange : Colors.grey),
                         onChanged: (val) {
                           setStateDialog(() {

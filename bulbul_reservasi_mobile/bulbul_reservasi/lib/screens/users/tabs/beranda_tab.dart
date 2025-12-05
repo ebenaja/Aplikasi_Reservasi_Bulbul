@@ -50,8 +50,8 @@ class _BerandaTabState extends State<BerandaTab> {
         _localStorage.getFavoriteIds(),
       ]);
 
-      final facilitiesData = results[0] as List<dynamic>;
-      final ulasanData = results[1] as List<dynamic>;
+      final facilitiesData = results[0];
+      final ulasanData = results[1];
       final favIds = results[2] as List<String>;
 
       if (mounted) {
@@ -429,7 +429,7 @@ class _BerandaTabState extends State<BerandaTab> {
       children: [
         _buildSectionTitle("Apa Kata Pengunjung?"),
         SizedBox(height: 12),
-        Container(
+        SizedBox(
           height: 130, // Horizontal Scroll Testimoni
           child: ListView.builder(
             scrollDirection: Axis.horizontal,

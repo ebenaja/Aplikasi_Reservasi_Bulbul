@@ -37,8 +37,11 @@ class AuthService {
 
         String role = "user";
         if (user['role'] != null) {
-           if (user['role'] is Map) role = user['role']['nama_role'] ?? 'user';
-           else role = user['role'].toString();
+           if (user['role'] is Map) {
+             role = user['role']['nama_role'] ?? 'user';
+           } else {
+             role = user['role'].toString();
+           }
         } else if (email.toLowerCase().contains('admin')) {
           role = "admin"; 
         }

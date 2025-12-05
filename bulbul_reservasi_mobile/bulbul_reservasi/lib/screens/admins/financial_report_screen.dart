@@ -234,7 +234,7 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
                               ],
                             ),
                           );
-                        }).toList()
+                        })
                       ],
                     ),
                   ),
