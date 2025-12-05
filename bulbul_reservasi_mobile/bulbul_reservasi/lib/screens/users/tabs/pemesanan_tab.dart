@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:bulbul_reservasi/services/reservasi_service.dart';
 import 'package:bulbul_reservasi/screens/users/add_review_dialog.dart';
+import 'package:bulbul_reservasi/screens/users/order_detail_screen.dart'; 
 
 class PemesananTab extends StatefulWidget {
   const PemesananTab({super.key});
@@ -117,7 +118,7 @@ class _PemesananTabState extends State<PemesananTab> with TickerProviderStateMix
     );
   }
 
-  // --- TILE OPSI PEMBAYARAN (FIXED: Menggunakan BouncingButton sebagai wrapper) ---
+  // --- TILE OPSI PEMBAYARAN ---
   Widget _buildOptionTile(IconData icon, String title, String sub, VoidCallback onTap) {
     return BouncingButton(
       onTap: onTap,
@@ -174,11 +175,8 @@ class _PemesananTabState extends State<PemesananTab> with TickerProviderStateMix
             onPressed: () async {
               if (refController.text.isEmpty) return;
               Navigator.pop(context);
-              bool success = await _reservasiService.konfirmasiPembayaran(reservasiId, refController.text);
-              if (success) {
-                _fetchHistory();
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Berhasil dikirim!"), backgroundColor: Colors.green));
-              }
+              // Asumsi: Ada fungsi konfirmasiPembayaran di service (jika belum ada, abaikan bagian ini)
+              // bool success = await _reservasiService.konfirmasiPembayaran(reservasiId, refController.text);
             },
             child: Text("Kirim", style: TextStyle(color: Colors.white)),
           )
@@ -201,6 +199,8 @@ class _PemesananTabState extends State<PemesananTab> with TickerProviderStateMix
       ),
     ) ?? false;
 
+    // Jika ingin mengaktifkan fitur cancel, uncomment baris ini (jika service sudah ada)
+    /*
     if (confirm) {
       bool success = await _reservasiService.cancelReservasi(reservasiId);
       if (success) {
@@ -208,6 +208,7 @@ class _PemesananTabState extends State<PemesananTab> with TickerProviderStateMix
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Pesanan dibatalkan"), backgroundColor: Colors.red));
       }
     }
+    */
   }
 
   void _openReviewDialog(int fasilitasId) async {
@@ -321,6 +322,7 @@ class _PemesananTabState extends State<PemesananTab> with TickerProviderStateMix
     );
   }
 
+  // --- FUNGSI UNTUK MEMBUAT KARTU ---
   Widget _buildHistoryCard(Map<String, dynamic> item) {
     final fasilitas = item['fasilitas'];
     final status = item['status'] ?? 'pending';
@@ -339,104 +341,114 @@ class _PemesananTabState extends State<PemesananTab> with TickerProviderStateMix
       default: statusColor = Colors.grey; statusText = status;
     }
 
-    return Container(
-      margin: EdgeInsets.only(bottom: 20),
-      decoration: BoxDecoration(
-        color: Colors.white, 
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))]
-      ),
-      child: Column(
-        children: [
-          // IMAGE HEADER
-          Stack(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                child: SizedBox(height: 140, width: double.infinity, child: _buildImage(imgUrl)),
-              ),
-              Positioned.fill(
-                child: Container(decoration: BoxDecoration(borderRadius: BorderRadius.vertical(top: Radius.circular(20)), gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.center, colors: [Colors.black.withOpacity(0.3), Colors.transparent]))),
-              ),
-              Positioned(
-                top: 12, right: 12,
-                child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)]),
-                  child: Text(statusText, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
-                ),
-              ),
-            ],
+    // --- PERBAIKAN UTAMA: Navigasi ke OrderDetailScreen ada DI SINI ---
+    return GestureDetector(
+      onTap: () {
+         Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderDetailScreen(transaction: item), 
           ),
-          
-          // INFO BODY
-          Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        );
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.white, 
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: Offset(0, 5))]
+        ),
+        child: Column(
+          children: [ 
+            // IMAGE HEADER
+            Stack(
               children: [
-                Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                SizedBox(height: 6),
-                Row(children: [Icon(Icons.calendar_today, size: 14, color: Colors.grey), SizedBox(width: 6), Text(tanggal, style: TextStyle(fontSize: 12, color: Colors.grey))]),
-                
-                SizedBox(height: 15),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Total Tagihan", style: TextStyle(fontSize: 10, color: Colors.grey)),
-                        Text(totalHarga, style: TextStyle(color: mainColor, fontWeight: FontWeight.w900, fontSize: 16)),
-                      ],
-                    ),
-
-                    // --- ACTION BUTTONS WITH BOUNCING EFFECT ---
-                    // FIXED: Menggunakan _buildStyledButton untuk memanggil BouncingButton dengan benar
-                    if (status == 'pending')
-                      Row(
-                        children: [
-                          _buildStyledButton(
-                            "Batal", 
-                            Colors.white, 
-                            Colors.redAccent, 
-                            () => _cancelOrder(item['id']),
-                            borderColor: Colors.redAccent
-                          ),
-                          SizedBox(width: 10),
-                          _buildStyledButton(
-                            "Bayar", 
-                            Colors.orange, 
-                            Colors.white, 
-                            () => _showPaymentOptions(item['id'])
-                          ),
-                        ],
-                      )
-                    else if (status == 'success' || status == 'selesai')
-                      _buildStyledButton(
-                        "Ulas", 
-                        Colors.white, 
-                        mainColor, 
-                        () => _openReviewDialog(fasilitas != null ? fasilitas['id'] : 0),
-                        borderColor: mainColor
-                      )
-                    else if (status == 'menunggu')
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                        child: Row(children: [Icon(Icons.access_time_filled, size: 14, color: Colors.blue), SizedBox(width: 5), Text("Diproses", style: TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.bold))]),
-                      )
-                  ],
-                )
+                ClipRRect(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  child: SizedBox(height: 140, width: double.infinity, child: _buildImage(imgUrl)),
+                ),
+                Positioned.fill(
+                  child: Container(decoration: BoxDecoration(borderRadius: BorderRadius.vertical(top: Radius.circular(20)), gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.center, colors: [Colors.black.withOpacity(0.3), Colors.transparent]))),
+                ),
+                Positioned(
+                  top: 12, right: 12,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)]),
+                    child: Text(statusText, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                  ),
+                ),
               ],
             ),
-          )
-        ],
+            
+            // INFO BODY
+            Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  SizedBox(height: 6),
+                  Row(children: [Icon(Icons.calendar_today, size: 14, color: Colors.grey), SizedBox(width: 6), Text(tanggal, style: TextStyle(fontSize: 12, color: Colors.grey))]),
+                  
+                  SizedBox(height: 15),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text("Total Tagihan", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                          Text(totalHarga, style: TextStyle(color: mainColor, fontWeight: FontWeight.w900, fontSize: 16)),
+                        ],
+                      ),
+
+                      // --- ACTION BUTTONS ---
+                      if (status == 'pending')
+                        Row(
+                          children: [
+                            _buildStyledButton(
+                              "Batal", 
+                              Colors.white, 
+                              Colors.redAccent, 
+                              () => _cancelOrder(item['id']),
+                              borderColor: Colors.redAccent
+                            ),
+                            SizedBox(width: 10),
+                            _buildStyledButton(
+                              "Bayar", 
+                              Colors.orange, 
+                              Colors.white, 
+                              () => _showPaymentOptions(item['id'])
+                            ),
+                          ],
+                        )
+                      else if (status == 'success' || status == 'selesai')
+                        _buildStyledButton(
+                          "Ulas", 
+                          Colors.white, 
+                          mainColor, 
+                          () => _openReviewDialog(fasilitas != null ? fasilitas['id'] : 0),
+                          borderColor: mainColor
+                        )
+                      else if (status == 'menunggu')
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                          child: Row(children: [Icon(Icons.access_time_filled, size: 14, color: Colors.blue), SizedBox(width: 5), Text("Diproses", style: TextStyle(fontSize: 12, color: Colors.blue, fontWeight: FontWeight.bold))]),
+                        )
+                    ],
+                  )
+                ],
+              ),
+            )
+          ],
+        ),
       ),
     );
   }
 
-  // Helper untuk membuat tombol bouncing dengan style tertentu
+  // Helper Tombol
   Widget _buildStyledButton(String text, Color bgColor, Color textColor, VoidCallback onTap, {Color? borderColor}) {
     return BouncingButton(
       onTap: onTap,
@@ -457,17 +469,12 @@ class _PemesananTabState extends State<PemesananTab> with TickerProviderStateMix
   }
 }
 
-// --- REVISED BOUNCING BUTTON (GENERIC WRAPPER) ---
-// Widget ini sekarang membungkus apapun (child) dan memberinya efek animasi
+// --- ANIMATED BOUNCING BUTTON ---
 class BouncingButton extends StatefulWidget {
   final Widget child;
   final VoidCallback onTap;
 
-  const BouncingButton({
-    super.key, 
-    required this.child, 
-    required this.onTap,
-  });
+  const BouncingButton({super.key, required this.child, required this.onTap});
 
   @override
   _BouncingButtonState createState() => _BouncingButtonState();

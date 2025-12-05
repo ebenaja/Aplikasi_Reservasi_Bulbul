@@ -38,7 +38,6 @@ class _UserFacilitiesScreenState extends State<UserFacilitiesScreen> {
           if (widget.category == "Semua Fasilitas") {
             _facilities = data;
           } else {
-            // Filter berdasarkan nama yang mengandung kata kategori (Case Insensitive)
             _facilities = data.where((item) {
               String nama = item['nama_fasilitas'].toString().toLowerCase();
               String kategori = widget.category.toLowerCase();
@@ -69,6 +68,21 @@ class _UserFacilitiesScreenState extends State<UserFacilitiesScreen> {
     } else {
       return Image.asset(path, fit: BoxFit.cover, errorBuilder: (ctx, err, stack) => Icon(Icons.image_not_supported, color: Colors.grey));
     }
+  }
+
+  // ✅ Fungsi baru untuk navigasi ke PaymentScreen + bawa URL foto
+  void _goToPayment(int id, String name, double price, String? imgUrl) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PaymentScreen(
+          fasilitasId: id,
+          itemName: name,
+          pricePerUnit: price,
+          imageUrl: imgUrl, // KIRIM URL FOTO
+        ),
+      ),
+    );
   }
 
   @override
@@ -122,8 +136,9 @@ class _UserFacilitiesScreenState extends State<UserFacilitiesScreen> {
     String nama = item['nama_fasilitas'] ?? 'Tanpa Nama';
     String hargaDisplay = formatRupiah(item['harga']);
     double hargaDouble = double.tryParse(item['harga'].toString()) ?? 0.0;
+
+    int id = item['id'];
     
-    // Status Logic
     String status = item['status'] ?? 'tersedia';
     bool isAvailable = status.toLowerCase() == 'tersedia';
     
@@ -131,16 +146,7 @@ class _UserFacilitiesScreenState extends State<UserFacilitiesScreen> {
 
     return GestureDetector(
       onTap: isAvailable ? () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => PaymentScreen(
-              fasilitasId: item['id'],
-              itemName: nama,
-              pricePerUnit: hargaDouble,
-            ),
-          ),
-        );
+        _goToPayment(id, nama, hargaDouble, fotoUrl); // Kirim fotoUrl
       } : null,
       child: Container(
         margin: EdgeInsets.only(bottom: 20),
@@ -152,7 +158,6 @@ class _UserFacilitiesScreenState extends State<UserFacilitiesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- GAMBAR & BADGE ---
             Stack(
               children: [
                 ClipRRect(
@@ -163,7 +168,7 @@ class _UserFacilitiesScreenState extends State<UserFacilitiesScreen> {
                     child: _buildImage(fotoUrl),
                   ),
                 ),
-                // Gradient Overlay
+
                 Positioned.fill(
                   child: Container(
                     decoration: BoxDecoration(
@@ -176,7 +181,7 @@ class _UserFacilitiesScreenState extends State<UserFacilitiesScreen> {
                     ),
                   ),
                 ),
-                // Badge Status (Pojok Kanan Atas)
+
                 Positioned(
                   top: 12, right: 12,
                   child: Container(
@@ -195,18 +200,16 @@ class _UserFacilitiesScreenState extends State<UserFacilitiesScreen> {
               ],
             ),
             
-            // --- INFORMASI ---
             Padding(
               padding: EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    nama, 
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87), 
-                    maxLines: 1, 
-                    overflow: TextOverflow.ellipsis
-                  ),
+                  Text(nama,
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis),
+                  
                   SizedBox(height: 6),
                   Row(
                     children: [
@@ -218,8 +221,7 @@ class _UserFacilitiesScreenState extends State<UserFacilitiesScreen> {
                   SizedBox(height: 15),
                   Divider(height: 1, color: Colors.grey[200]),
                   SizedBox(height: 15),
-                  
-                  // HARGA & TOMBOL
+
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -230,16 +232,7 @@ class _UserFacilitiesScreenState extends State<UserFacilitiesScreen> {
                       
                       ElevatedButton(
                         onPressed: isAvailable ? () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PaymentScreen(
-                                fasilitasId: item['id'],
-                                itemName: nama,
-                                pricePerUnit: hargaDouble,
-                              ),
-                            ),
-                          );
+                          _goToPayment(id, nama, hargaDouble, fotoUrl);
                         } : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isAvailable ? mainColor : Colors.grey[300],
