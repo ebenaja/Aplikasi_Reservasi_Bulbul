@@ -4,22 +4,28 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ReservasiService {
-  // BASE URL NORMAL
+  // ------------------------------------------------------------------------
+  // BASE URL
+  // Gunakan 10.0.2.2 jika pakai Emulator
+  // Gunakan IP Laptop (misal 192.168.1.10) jika pakai HP Fisik
+  // ------------------------------------------------------------------------
   final String baseUrl = 'http://10.0.2.2:8000/api';
 
-  // ============================================================
-  // 1. FUNGSI BARU: createReservasiWithResponse
-  // ============================================================
-  Future<Map<String, dynamic>> createReservasiWithResponse(
-      Map<String, dynamic> data) async {
+  // ========================================================================
+  // 1. BUAT RESERVASI
+  // Mengembalikan Map agar PaymentScreen bisa dapat ID & Pesan Error
+  // ========================================================================
+  Future<Map<String, dynamic>> createReservasi(Map<String, dynamic> data) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
+    final token = prefs.getString('token');
 
-    if (token.isEmpty) {
-      return {'success': false, 'message': 'Belum login'};
+    if (token == null) {
+      return {'success': false, 'message': 'Sesi habis, silakan login ulang.'};
     }
 
     try {
+      print("🔵 Mengirim Data Reservasi: $data");
+
       final response = await http.post(
         Uri.parse('$baseUrl/reservasi'),
         headers: {
@@ -29,78 +35,38 @@ class ReservasiService {
         },
         body: jsonEncode(data),
       );
+
+      print("🟢 Status Reservasi: ${response.statusCode}");
+      print("🟢 Response Body: ${response.body}");
 
       final body = jsonDecode(response.body);
 
       if (response.statusCode == 201) {
         return {
           'success': true,
-          'message': 'Berhasil',
-          'data': body['data'] // karena PaymentScreen butuh ID reservasi
-        };
-      } else if (response.statusCode == 409) {
-        // contoh: stok penuh, jadwal bentrok
-        return {
-          'success': false,
-          'message': body['message'] ?? 'Fasilitas penuh!'
+          'message': 'Reservasi Berhasil',
+          'data': body['data'] // ID reservasi ada di sini
         };
       } else {
         return {
           'success': false,
-          'message': body['message'] ?? 'Gagal reservasi'
+          'message': body['message'] ?? 'Gagal membuat reservasi.'
         };
       }
     } catch (e) {
+      print("🔴 Error Create Reservasi: $e");
       return {'success': false, 'message': 'Koneksi Error: $e'};
     }
   }
 
-  // ============================================================
-  // 2. FUNGSI LAMA (Tetap Dipertahankan): createReservasi
-  // ============================================================
-  Future<Map<String, dynamic>> createReservasi(Map<String, dynamic> data) async {
+  // ========================================================================
+  // 2. AMBIL RIWAYAT (HISTORY)
+  // ========================================================================
+  Future<List<dynamic>> getHistory() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
 
-    if (token == null) return {'success': false, 'message': 'Belum login'};
-
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/reservasi'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(data),
-      );
-
-      final responseData = jsonDecode(response.body);
-      if (response.statusCode == 201) {
-        return {
-          'success': true,
-          'message': 'Berhasil',
-          'data': responseData['data']
-        };
-      } else {
-        return {
-          'success': false,
-          'message': responseData['message'] ?? 'Gagal reservasi'
-        };
-      }
-    } catch (e) {
-      return {'success': false, 'message': 'Koneksi Error: $e'};
-    }
-  }
-
-  // ============================================================
-  // 3. Ambil Riwayat Reservasi
-  // ============================================================
-  Future<List<dynamic>> getHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token') ?? '';
-
-    if (token.isEmpty) return [];
+    if (token == null) return [];
 
     try {
       final response = await http.get(
@@ -114,17 +80,56 @@ class ReservasiService {
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body);
         return json['data'] ?? [];
+      } else {
+        print("🔴 Gagal Ambil History: ${response.body}");
       }
     } catch (e) {
-      print("Error History: $e");
+      print("🔴 Error Get History: $e");
     }
-
     return [];
   }
 
-  // ============================================================
-  // 4. Konfirmasi Pembayaran (No Referensi)
-  // ============================================================
+  // ========================================================================
+  // 3. UPLOAD BUKTI PEMBAYARAN (GAMBAR)
+  // ========================================================================
+  Future<bool> uploadBukti(int reservasiId, File imageFile) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null) return false;
+
+    try {
+      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/pembayaran'));
+
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['Accept'] = 'application/json';
+
+      request.fields['reservasi_id'] = reservasiId.toString();
+      request.fields['status'] = 'menunggu';
+
+      // Attach File Gambar
+      request.files.add(await http.MultipartFile.fromPath(
+        'bukti',
+        imageFile.path,
+      ));
+
+      print("🔵 Uploading Bukti...");
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      print("🟢 Status Upload: ${response.statusCode}");
+      print("🟢 Body Upload: ${response.body}");
+
+      return (response.statusCode == 201 || response.statusCode == 200);
+    } catch (e) {
+      print("🔴 Error Upload: $e");
+      return false;
+    }
+  }
+
+  // ========================================================================
+  // 4. KONFIRMASI PEMBAYARAN (TEXT NO. REFERENSI)
+  // ========================================================================
   Future<bool> konfirmasiPembayaran(int reservasiId, String noReferensi) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
@@ -146,64 +151,37 @@ class ReservasiService {
         }),
       );
 
-      return (response.statusCode == 200 || response.statusCode == 201);
+      print("🟢 Status Konfirmasi: ${response.statusCode}");
+      return (response.statusCode == 201 || response.statusCode == 200);
     } catch (e) {
+      print("🔴 Error Konfirmasi: $e");
       return false;
     }
   }
 
-  // ============================================================
-  // 5. Upload Bukti Pembayaran (Gambar)
-  // ============================================================
-  Future<bool> uploadBukti(int reservasiId, File imageFile) async {
+  // ========================================================================
+  // 5. BATALKAN RESERVASI
+  // ========================================================================
+  Future<bool> cancelReservasi(int reservasiId) async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('token');
-
+    
     if (token == null) return false;
 
     try {
-      var request =
-          http.MultipartRequest('POST', Uri.parse('$baseUrl/pembayaran'));
-
-      request.headers['Authorization'] = 'Bearer $token';
-      request.headers['Accept'] = 'application/json';
-
-      request.fields['reservasi_id'] = reservasiId.toString();
-      request.fields['status'] = 'menunggu';
-
-      request.files.add(await http.MultipartFile.fromPath(
-        'bukti',
-        imageFile.path,
-      ));
-
-      var streamedResponse = await request.send();
-      var response = await http.Response.fromStream(streamedResponse);
-
-      return (response.statusCode == 201 || response.statusCode == 200);
-    } catch (e) {
-      return false;
-    }
-  }
-
-  // ============================================================
-  // 6. Batal Reservasi
-  // ============================================================
-  Future<bool> cancelReservasi(int reservasiId) async {
-    try {
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      String token = prefs.getString('token') ?? '';
-
+      // Pastikan route ini ada di Laravel: Route::post('/reservasi/{id}/cancel', ...)
       final response = await http.post(
-        Uri.parse('$baseUrl/reservasi/$reservasiId/cancel'),
+        Uri.parse('$baseUrl/reservasi/$reservasiId/cancel'), 
         headers: {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
       );
-
+      
+      print("🟢 Status Cancel: ${response.statusCode}");
       return response.statusCode == 200;
     } catch (e) {
-      print("Error Cancel: $e");
+      print("🔴 Error Cancel: $e");
       return false;
     }
   }
