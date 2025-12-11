@@ -252,46 +252,29 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
           : _facilities.isEmpty
               ? Center(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 80),
+                    padding: EdgeInsets.symmetric(vertical: 100),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 100,
-                          height: 100,
+                          width: 90,
+                          height: 90,
                           decoration: BoxDecoration(
                             color: Colors.blue[50],
                             shape: BoxShape.circle,
                           ),
-                          child: Icon(Icons.inventory_2_outlined, size: 50, color: Colors.blue[300]),
+                          child: Icon(Icons.inventory_2_outlined, size: 45, color: Colors.blue[300]),
                         ),
                         SizedBox(height: 20),
                         Text("Belum Ada Fasilitas", style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold)),
                         SizedBox(height: 8),
-                        Text("Tambahkan fasilitas baru dengan tombol di bawah", style: TextStyle(color: Colors.grey[500], fontSize: 13)),
-                        SizedBox(height: 30),
-                        Container(
-                          padding: EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.green[50],
-                            borderRadius: BorderRadius.circular(15),
-                            border: Border.all(color: Colors.green[200]!),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.lightbulb_outline, color: Colors.green[700], size: 20),
-                              SizedBox(width: 10),
-                              Expanded(child: Text("Mulai dengan menambahkan fasilitas terbaik Anda", style: TextStyle(color: Colors.green[700], fontSize: 12))),
-                            ],
-                          ),
-                        ),
+                        Text("Tambahkan fasilitas baru untuk memulai", style: TextStyle(color: Colors.grey[500], fontSize: 13)),
                       ],
                     ),
                   ),
                 )
               : ListView.builder(
-                  padding: EdgeInsets.fromLTRB(16, 20, 16, 80),
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 100),
                   itemCount: _facilities.length,
                   itemBuilder: (context, index) => _buildAdminCard(_facilities[index]),
                 ),
@@ -304,11 +287,11 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
     bool isAvailable = (item['status'] == 'tersedia');
 
     return Container(
-      margin: EdgeInsets.only(bottom: 20),
+      margin: EdgeInsets.only(bottom: 18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: Offset(0, 4))],
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: Offset(0, 4))],
         // Border oranye tebal jika promo
         border: isPromo ? Border.all(color: Colors.orange, width: 2) : Border.all(color: Colors.transparent),
       ),
@@ -319,8 +302,8 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
           Stack(
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(14)), // -2 px border width
-                child: SizedBox(height: 150, width: double.infinity, child: _buildImageDisplay(item['foto'])),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                child: SizedBox(height: 160, width: double.infinity, child: _buildImageDisplay(item['foto'])),
               ),
               
               // Gradient Overlay untuk teks di atas gambar

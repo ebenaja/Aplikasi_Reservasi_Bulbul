@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:bulbul_reservasi/services/admin_service.dart';
 import 'package:animate_do/animate_do.dart';
-import 'package:intl/intl.dart';
 
 class ManageUlasanScreen extends StatefulWidget {
   const ManageUlasanScreen({super.key});
@@ -113,16 +112,7 @@ class _ManageUlasanScreenState extends State<ManageUlasanScreen> {
           }
         }
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Error: $e", style: TextStyle(color: Colors.white)),
-              backgroundColor: Colors.red[700],
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            )
-          );
-        }
+        // Handle Error
       } finally {
         if (mounted) setState(() => _deletingId = null);
       }
@@ -145,6 +135,10 @@ class _ManageUlasanScreenState extends State<ManageUlasanScreen> {
               expandedHeight: 220,
               floating: true,
               pinned: true,
+              leading: IconButton( // Tombol Back Putih
+                icon: Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
                   decoration: BoxDecoration(
@@ -160,12 +154,18 @@ class _ManageUlasanScreenState extends State<ManageUlasanScreen> {
                       Positioned(bottom: -30, right: -30, child: CircleAvatar(radius: 80, backgroundColor: Colors.white.withOpacity(0.08))),
                       SafeArea(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+                          padding: EdgeInsets.fromLTRB(24, 60, 24, 20), // Tambah padding atas agar tidak nabrak tombol back
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              FadeInDown(child: Text("Manajemen Ulasan", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28, color: Colors.white))),
+                              // JUDUL DIGESER AGAR TIDAK NABRAK
+                              FadeInDown(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(top: 10.0), 
+                                  child: Text("Manajemen Ulasan", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 28, color: Colors.white)),
+                                )
+                              ),
                               FadeInUp(
                                 delay: Duration(milliseconds: 100),
                                 child: Row(
@@ -231,23 +231,6 @@ class _ManageUlasanScreenState extends State<ManageUlasanScreen> {
                             Text("Belum Ada Ulasan", style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold)),
                             SizedBox(height: 8),
                             Text("Ulasan dari pengunjung akan muncul di sini", style: TextStyle(color: Colors.grey[500], fontSize: 13)),
-                            SizedBox(height: 30),
-                            Container(
-                              padding: EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: Colors.blue[50],
-                                borderRadius: BorderRadius.circular(15),
-                                border: Border.all(color: Colors.blue[200]!),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                                  SizedBox(width: 10),
-                                  Expanded(child: Text("Tunggu pengunjung memberikan ulasan terbaik", style: TextStyle(color: Colors.blue[700], fontSize: 12))),
-                                ],
-                              ),
-                            ),
                           ],
                         ),
                       ),

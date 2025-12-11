@@ -189,7 +189,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 clipBehavior: Clip.none,
                 children: [
                   Container(
-                    height: 260,
+                    height: 280,
                     width: double.infinity,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -197,7 +197,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
+                      borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(32), bottomRight: Radius.circular(32)),
                     ),
                   ),
                   SafeArea(
@@ -263,18 +263,18 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
                   // Floating card (stats)
                   Positioned(
-                    bottom: -40,
+                    bottom: -45,
                     left: 24,
                     right: 24,
                     child: RepaintBoundary( // membantu performance saat bagian lain rebuild
                       child: GestureDetector(
                         onTap: () => _navigateTo(const FinancialReportScreen()),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 10))],
+                            borderRadius: BorderRadius.circular(22),
+                            boxShadow: [BoxShadow(color: mainColor.withOpacity(0.2), blurRadius: 16, offset: const Offset(0, 6))],
                           ),
                           child: Row(
                             children: [
@@ -335,7 +335,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 ],
               ),
 
-              const SizedBox(height: 70), // kompensasi space untuk floating card
+              const SizedBox(height: 80), // kompensasi space untuk floating card
 
               // GRID MENU UTAMA
               Padding(
@@ -344,7 +344,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text("Akses Cepat", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-                    const SizedBox(height: 15),
+                    const SizedBox(height: 16),
 
                     GridView.count(
                       shrinkWrap: true,
@@ -388,9 +388,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: 30),
-              Text("Bulbul Admin Panel v1.0", style: TextStyle(color: Colors.grey[400], fontSize: 12)),
-              const SizedBox(height: 20),
+              const SizedBox(height: 32),
+              Text("Bulbul Admin Panel v1.0", style: TextStyle(color: Colors.grey[400], fontSize: 11, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -405,8 +405,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 5))],
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: const Offset(0, 4))],
         ),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -416,13 +416,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: themeColor.withOpacity(0.1), shape: BoxShape.circle),
-                child: Icon(icon, color: themeColor, size: 28),
+                decoration: BoxDecoration(color: themeColor.withOpacity(0.15), shape: BoxShape.circle),
+                child: Icon(icon, color: themeColor, size: 26),
               ),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87)),
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
                   const SizedBox(height: 4),
                   Text(subtitle, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
                 ],

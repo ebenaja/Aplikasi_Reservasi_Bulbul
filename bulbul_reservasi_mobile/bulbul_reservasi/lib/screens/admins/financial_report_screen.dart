@@ -110,19 +110,34 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- 1. HEADER SECTION ---
+// --- 1. HEADER SECTION (DIPERBAIKI) ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Ringkasan Keuangan", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)),
-                          Text("Update: ${DateFormat('HH:mm').format(DateTime.now())}", style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-                        ],
+                      // Ganti Column biasa dengan Expanded
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Ringkasan Keuangan", 
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87), // Font size sedikit dikecilkan biar aman
+                              overflow: TextOverflow.ellipsis, // Agar tidak overflow ke bawah/samping
+                              maxLines: 1,
+                            ),
+                            Text(
+                              "Update: ${DateFormat('HH:mm').format(DateTime.now())}", 
+                              style: TextStyle(fontSize: 12, color: Colors.grey[500])
+                            ),
+                          ],
+                        ),
                       ),
+                      
+                      SizedBox(width: 10), // Jarak aman
+
+                      // Tombol Dropdown
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
@@ -131,15 +146,15 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
                         ),
                         child: Row(
                           children: [
-                            Text("Bulan Ini", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[700], fontSize: 13)),
-                            SizedBox(width: 6),
-                            Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.grey[600])
+                            Text("Bulan Ini", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[700], fontSize: 12)),
+                            SizedBox(width: 4),
+                            Icon(Icons.keyboard_arrow_down, size: 16, color: Colors.grey[600])
                           ],
                         ),
                       )
                     ],
                   ),
-
+                  
                   SizedBox(height: 24),
 
                   // --- 2. KEY METRICS CARDS (Revenue, Orders, Avg) ---
@@ -148,25 +163,25 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
                     child: Row(
                       children: [
                         _buildStatCard("Total Pendapatan", formatRupiah(totalPendapatan), Icons.account_balance_wallet, Colors.green, "+12%"),
-                        SizedBox(width: 15),
+                        SizedBox(width: 16),
                         _buildStatCard("Total Pesanan", "$totalTransaksi", Icons.shopping_bag, Colors.orange, "+5"),
-                        SizedBox(width: 15),
+                        SizedBox(width: 16),
                         _buildStatCard("Rata-rata Order", formatRupiah(rataRataTransaksi), Icons.analytics, Colors.blue, "~"),
                       ],
                     ),
                   ),
 
-                  SizedBox(height: 30),
+                  SizedBox(height: 32),
 
                   // --- 3. LEADERBOARD (Fasilitas Terlaris) ---
                   Text("Performa Fasilitas", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-                  SizedBox(height: 15),
+                  SizedBox(height: 14),
                   Container(
                     padding: EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: cardColor,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: Offset(0, 5))],
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: Offset(0, 4))],
                     ),
                     child: Column(
                       children: [
@@ -260,17 +275,17 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
                     ),
                   ),
 
-                  SizedBox(height: 30),
+                  SizedBox(height: 32),
 
                   // --- 4. TABEL TRANSAKSI TERBARU (Clean List) ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text("Transaksi Terbaru", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
-                      Text("Lihat Semua", style: TextStyle(color: mainColor, fontWeight: FontWeight.bold, fontSize: 12)),
+                      Text("Lihat Semua", style: TextStyle(color: mainColor, fontWeight: FontWeight.w600, fontSize: 12)),
                     ],
                   ),
-                  SizedBox(height: 15),
+                  SizedBox(height: 14),
 
                   transaksiTerbaru.isEmpty
                     ? Center(
@@ -359,8 +374,8 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 4))],
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10, offset: Offset(0, 3))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -370,21 +385,21 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
             children: [
               Container(
                 padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(color: color.withOpacity(0.15), borderRadius: BorderRadius.circular(10)),
                 child: Icon(icon, color: color, size: 20),
               ),
               // Indikator kenaikan (Dummy visual)
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(10)),
-                child: Text(growth, style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                child: Text(growth, style: TextStyle(color: Colors.green[700], fontSize: 10, fontWeight: FontWeight.bold)),
               )
             ],
           ),
-          SizedBox(height: 15),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis),
-          SizedBox(height: 5),
-          Text(title, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+          SizedBox(height: 14),
+          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87), maxLines: 1, overflow: TextOverflow.ellipsis),
+          SizedBox(height: 6),
+          Text(title, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
         ],
       ),
     );
