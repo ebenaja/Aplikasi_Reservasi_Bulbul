@@ -35,7 +35,7 @@ class _UserFacilitiesScreenState extends State<UserFacilitiesScreen> {
       if (mounted) {
         setState(() {
           // LOGIKA FILTER
-          if (widget.category == "Semua Fasilitas") {
+          if (widget.category == "Semua" || widget.category == "Semua Fasilitas") {
             _facilities = data;
           } else {
             _facilities = data.where((item) {

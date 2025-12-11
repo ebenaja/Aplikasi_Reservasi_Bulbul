@@ -5,8 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class FacilityService {
   // Sesuaikan IP Laptop Anda
-  //final String baseUrl = 'http://10.0.2.2:8000/api/fasilitas'; 
-  final String baseUrl = 'http://172.27.81.234:8000/api/fasilitas';
+  final String baseUrl = 'http://10.0.2.2:8000/api/fasilitas'; 
+  //final String baseUrl = 'http://172.27.81.234:8000/api/fasilitas';
 
   Future<Map<String, String>> _getHeaders() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();

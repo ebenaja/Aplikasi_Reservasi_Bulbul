@@ -331,7 +331,7 @@ class _BerandaTabState extends State<BerandaTab> {
                           _buildCategoryBtn("Pondok", Icons.house_siding_rounded, () => _navigateToCategory("Pondok")),
                           _buildCategoryBtn("Tenda", Icons.holiday_village_rounded, () => _navigateToCategory("Tenda")),
                           _buildCategoryBtn("Homestay", Icons.home_rounded, () => _navigateToCategory("Homestay")),
-                          _buildCategoryBtn("Wahana", Icons.kayaking_rounded, () => _navigateToCategory("Wahana")),
+                          _buildCategoryBtn("Semua", Icons.view_list_rounded, () => _navigateToSeeAll()),
                         ],
                       ),
                     ),

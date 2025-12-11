@@ -250,16 +250,48 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: mainColor))
           : _facilities.isEmpty
-              ? Center(child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey[300]),
-                    SizedBox(height: 15),
-                    Text("Belum ada data fasilitas", style: TextStyle(color: Colors.grey[600], fontSize: 16)),
-                  ],
-                ))
+              ? Center(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(vertical: 80),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.inventory_2_outlined, size: 50, color: Colors.blue[300]),
+                        ),
+                        SizedBox(height: 20),
+                        Text("Belum Ada Fasilitas", style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold)),
+                        SizedBox(height: 8),
+                        Text("Tambahkan fasilitas baru dengan tombol di bawah", style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                        SizedBox(height: 30),
+                        Container(
+                          padding: EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.green[50],
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(color: Colors.green[200]!),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.lightbulb_outline, color: Colors.green[700], size: 20),
+                              SizedBox(width: 10),
+                              Expanded(child: Text("Mulai dengan menambahkan fasilitas terbaik Anda", style: TextStyle(color: Colors.green[700], fontSize: 12))),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
               : ListView.builder(
-                  padding: EdgeInsets.fromLTRB(16, 20, 16, 80), // Padding bawah extra biar ga ketutup FAB
+                  padding: EdgeInsets.fromLTRB(16, 20, 16, 80),
                   itemCount: _facilities.length,
                   itemBuilder: (context, index) => _buildAdminCard(_facilities[index]),
                 ),

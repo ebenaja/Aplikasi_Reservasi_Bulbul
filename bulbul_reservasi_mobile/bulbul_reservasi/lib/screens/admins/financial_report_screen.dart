@@ -106,40 +106,41 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: mainColor))
           : SingleChildScrollView(
-              padding: EdgeInsets.all(20),
+              padding: EdgeInsets.fromLTRB(20, 20, 20, 30),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- 1. FILTER TANGGAL (Visual UI) ---
+                  // --- 1. HEADER SECTION ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Overview", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
-                          Text("Update terakhir: ${DateFormat('HH:mm').format(DateTime.now())}", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          Text("Ringkasan Keuangan", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)),
+                          Text("Update: ${DateFormat('HH:mm').format(DateTime.now())}", style: TextStyle(fontSize: 12, color: Colors.grey[500])),
                         ],
                       ),
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.grey[300]!)
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey[200]!),
+                          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: Offset(0, 2))]
                         ),
                         child: Row(
                           children: [
-                            Text("Bulan Ini", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey[700])),
-                            SizedBox(width: 5),
-                            Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.grey[700])
+                            Text("Bulan Ini", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey[700], fontSize: 13)),
+                            SizedBox(width: 6),
+                            Icon(Icons.keyboard_arrow_down, size: 18, color: Colors.grey[600])
                           ],
                         ),
                       )
                     ],
                   ),
 
-                  SizedBox(height: 20),
+                  SizedBox(height: 24),
 
                   // --- 2. KEY METRICS CARDS (Revenue, Orders, Avg) ---
                   SingleChildScrollView(
@@ -170,7 +171,27 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
                     child: Column(
                       children: [
                         if (fasilitasPopuler.isEmpty) 
-                          Padding(padding: EdgeInsets.all(20), child: Text("Belum ada data penjualan", style: TextStyle(color: Colors.grey))),
+                          Padding(
+                            padding: EdgeInsets.symmetric(vertical: 40),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 80,
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange[50],
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(Icons.trending_up, size: 40, color: Colors.orange[300]),
+                                ),
+                                SizedBox(height: 15),
+                                Text("Belum Ada Penjualan", style: TextStyle(color: Colors.grey[700], fontSize: 14, fontWeight: FontWeight.w600)),
+                                SizedBox(height: 5),
+                                Text("Data penjualan akan ditampilkan di sini", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                              ],
+                            ),
+                          ),
                         
                         ...fasilitasPopuler.asMap().entries.map((entry) {
                           int idx = entry.key;
@@ -252,7 +273,28 @@ class _FinancialReportScreenState extends State<FinancialReportScreen> {
                   SizedBox(height: 15),
 
                   transaksiTerbaru.isEmpty
-                    ? Center(child: Text("Belum ada transaksi.", style: TextStyle(color: Colors.grey)))
+                    ? Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: Colors.purple[50],
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(Icons.receipt_long_outlined, size: 40, color: Colors.purple[300]),
+                              ),
+                              SizedBox(height: 15),
+                              Text("Belum Ada Transaksi", style: TextStyle(color: Colors.grey[700], fontSize: 14, fontWeight: FontWeight.w600)),
+                              SizedBox(height: 5),
+                              Text("Transaksi baru akan muncul di sini", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                      )
                     : ListView.builder(
                         shrinkWrap: true,
                         physics: NeverScrollableScrollPhysics(),

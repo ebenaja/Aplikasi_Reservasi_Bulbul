@@ -6,6 +6,8 @@ import 'package:animate_do/animate_do.dart';
 // --- PERBAIKAN: IMPORT HARUS ADA ---
 import 'package:bulbul_reservasi/screens/users/login_screen.dart'; 
 import 'package:bulbul_reservasi/services/auth_service.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
@@ -20,12 +22,15 @@ class _ProfileTabState extends State<ProfileTab> {
   
   String userName = "Loading...";
   String userEmail = "";
-  bool _isLoading = false; 
+  bool _isLoading = false;
+  File? _profileImage;
+  final ImagePicker _imagePicker = ImagePicker(); 
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
+    _loadProfileImage();
   }
 
   void _loadUserData() async {
@@ -34,6 +39,33 @@ class _ProfileTabState extends State<ProfileTab> {
       userName = prefs.getString('user_name') ?? "Pengunjung";
       userEmail = prefs.getString('user_email') ?? "user@bulbul.com";
     });
+  }
+
+  Future<void> _pickProfileImage() async {
+    try {
+      final XFile? pickedFile = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+        maxWidth: 512,
+      );
+      
+      if (pickedFile != null) {
+        setState(() => _profileImage = File(pickedFile.path));
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('profile_image_path', pickedFile.path);
+        _showSnackBar('Foto profil berhasil disimpan', Colors.green);
+      }
+    } catch (e) {
+      _showSnackBar('Gagal memilih foto: $e', Colors.red);
+    }
+  }
+
+  Future<void> _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final imagePath = prefs.getString('profile_image_path');
+    if (imagePath != null && File(imagePath).existsSync()) {
+      setState(() => _profileImage = File(imagePath));
+    }
   }
 
   // --- DIALOG UBAH NAMA ---
@@ -251,23 +283,37 @@ class _ProfileTabState extends State<ProfileTab> {
                             FadeInDown(
                               child: Stack(
                                 children: [
-                                  Container(
-                                    padding: EdgeInsets.all(4),
-                                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.3), shape: BoxShape.circle),
-                                    child: CircleAvatar(
-                                      radius: 55,
-                                      backgroundColor: Colors.white,
-                                      child: Icon(Icons.person, size: 65, color: Colors.grey[300]),
+                                  GestureDetector(
+                                    onTap: _pickProfileImage,
+                                    child: Container(
+                                      padding: EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.3),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.white, width: 3),
+                                      ),
+                                      child: CircleAvatar(
+                                        radius: 55,
+                                        backgroundColor: Colors.white,
+                                        backgroundImage: _profileImage != null ? FileImage(_profileImage!) : null,
+                                        child: _profileImage == null
+                                          ? Icon(Icons.person, size: 65, color: Colors.grey[300])
+                                          : null,
+                                      ),
                                     ),
                                   ),
                                   Positioned(
                                     bottom: 0, right: 0,
                                     child: GestureDetector(
-                                      onTap: _showEditNameDialog,
+                                      onTap: _pickProfileImage,
                                       child: Container(
-                                        padding: EdgeInsets.all(8),
-                                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)]),
-                                        child: Icon(Icons.edit, color: mainColor, size: 18),
+                                        padding: EdgeInsets.all(10),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, 3))],
+                                        ),
+                                        child: Icon(Icons.camera_alt, color: mainColor, size: 20),
                                       ),
                                     ),
                                   )

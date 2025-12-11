@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:bulbul_reservasi/services/admin_service.dart';
+import 'package:animate_do/animate_do.dart';
+import 'package:intl/intl.dart';
 
 class ManageReservasiScreen extends StatefulWidget {
   const ManageReservasiScreen({super.key});
@@ -10,9 +12,13 @@ class ManageReservasiScreen extends StatefulWidget {
 class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
   final AdminService _service = AdminService();
   final Color mainColor = const Color(0xFF50C2C9);
+  final Color secondaryColor = const Color(0xFF2E8B91);
+  final Color bgPage = const Color(0xFFF5F7FA);
   
   List<dynamic> _reservasi = [];
   bool _isLoading = true;
+  int? _updatingId;
+  int? _deletingId;
 
   @override
   void initState() {
@@ -36,15 +42,46 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
   }
 
   void _updateStatus(int id, String status) async {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Mengupdate status..."), duration: Duration(milliseconds: 500)));
-    
-    bool success = await _service.updateStatusReservasi(id, status);
-    
-    if (success) {
-      _fetchData(); 
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Status berhasil diubah ke $status"), backgroundColor: Colors.green));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Gagal update status"), backgroundColor: Colors.red));
+    setState(() => _updatingId = id);
+    try {
+      bool success = await _service.updateStatusReservasi(id, status);
+      if (success) {
+        _fetchData();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Status berhasil diubah ke $status", style: TextStyle(color: Colors.white)),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            )
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Gagal update status", style: TextStyle(color: Colors.white)),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            )
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: $e", style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.red[700],
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          )
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _updatingId = null);
     }
   }
 
@@ -63,13 +100,46 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
     ) ?? false;
 
     if (confirm) {
-      // Pastikan fungsi deleteReservasi sudah ada di AdminService
-      bool success = await _service.deleteReservasi(id);
-      if (success) {
-        _fetchData();
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Data berhasil dihapus"), backgroundColor: Colors.red));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Gagal menghapus"), backgroundColor: Colors.grey));
+      setState(() => _deletingId = id);
+      try {
+        bool success = await _service.deleteReservasi(id);
+        if (success) {
+          _fetchData();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Data berhasil dihapus", style: TextStyle(color: Colors.white)),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              )
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("Gagal menghapus", style: TextStyle(color: Colors.white)),
+                backgroundColor: Colors.grey[600],
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              )
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Error: $e", style: TextStyle(color: Colors.white)),
+              backgroundColor: Colors.red[700],
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            )
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _deletingId = null);
       }
     }
   }
@@ -178,60 +248,122 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      appBar: AppBar(
-        title: Text("Manajemen Reservasi", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-        backgroundColor: mainColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator(color: mainColor))
-          : _reservasi.isEmpty
-              ? Center(child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey[300]),
-                    SizedBox(height: 15),
-                    Text("Belum ada data reservasi.", style: TextStyle(color: Colors.grey[600], fontSize: 16)),
-                  ],
-                ))
-              : ListView.builder(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                  itemCount: _reservasi.length,
-                  itemBuilder: (context, index) => _buildReservasiCard(_reservasi[index]),
+      backgroundColor: bgPage,
+      body: RefreshIndicator(
+        onRefresh: () async => _fetchData(),
+        color: mainColor,
+        child: CustomScrollView(
+          physics: AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // HEADER GRADIENT
+            SliverAppBar(
+              expandedHeight: 180,
+              floating: true,
+              pinned: true,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [mainColor, secondaryColor],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(top: -50, left: -50, child: CircleAvatar(radius: 100, backgroundColor: Colors.white.withOpacity(0.1))),
+                      Positioned(top: 40, right: -30, child: CircleAvatar(radius: 60, backgroundColor: Colors.white.withOpacity(0.1))),
+                      SafeArea(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              FadeInDown(child: Text("Manajemen Reservasi", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: Colors.white))),
+                              SizedBox(height: 5),
+                              FadeInUp(delay: Duration(milliseconds: 100), child: Text("Total: ${_reservasi.length} reservasi", style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.9)))),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+              ),
+              backgroundColor: mainColor,
+              elevation: 0,
+              foregroundColor: Colors.white,
+            ),
+            // CONTENT BODY
+            SliverToBoxAdapter(
+              child: _isLoading
+                ? Center(child: Padding(padding: EdgeInsets.all(50), child: CircularProgressIndicator(color: mainColor)))
+                : _reservasi.isEmpty
+                  ? Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 60),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.receipt_long_outlined, size: 80, color: Colors.grey[300]),
+                            SizedBox(height: 15),
+                            Text("Belum ada data reservasi.", style: TextStyle(color: Colors.grey[600], fontSize: 16, fontWeight: FontWeight.w500)),
+                            SizedBox(height: 5),
+                            Text("Reservasi dari pengunjung akan muncul di sini", style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                    )
+                  : Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: _reservasi.length,
+                        itemBuilder: (context, index) => FadeInUp(
+                          delay: Duration(milliseconds: index * 100),
+                          child: _buildReservasiCard(_reservasi[index]),
+                        ),
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildReservasiCard(Map<String, dynamic> item) {
-    // --- PERBAIKAN UTAMA DI SINI: DEFINISI VARIABEL ID ---
-    final int id = item['id']; // Definisikan ID di sini agar bisa dipanggil di bawah
-    
+    final int id = item['id'];
     final user = item['user'] ?? {'nama': 'User Terhapus'};
     final fasilitas = item['fasilitas'] ?? {'nama_fasilitas': 'Fasilitas Terhapus'};
     final pembayaran = item['pembayaran']; 
     final String? dataBukti = pembayaran != null ? pembayaran['bukti'] : null;
     final status = item['status'] ?? 'pending';
     bool isImageBukti = dataBukti != null && (dataBukti.startsWith('http') || dataBukti.contains('storage'));
+    bool isDeleting = _deletingId == id;
+    bool isUpdating = _updatingId == id;
 
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: Offset(0, 4))],
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // --- HEADER CARD (ID & TANGGAL + HAPUS) ---
+          // --- HEADER CARD (ID & STATUS + HAPUS) ---
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              gradient: LinearGradient(
+                colors: [mainColor.withOpacity(0.08), secondaryColor.withOpacity(0.08)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
               border: Border(bottom: BorderSide(color: Colors.grey[200]!))
             ),
             child: Row(
@@ -241,26 +373,35 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
                 Row(
                   children: [
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: mainColor.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+                      child: Text("#${item['id']}", style: TextStyle(fontWeight: FontWeight.bold, color: mainColor, fontSize: 12)),
+                    ),
+                    SizedBox(width: 12),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(status).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8)
+                        color: _getStatusColor(status).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
-                        "#$id - ${_getStatusText(status).toUpperCase()}", 
-                        style: TextStyle(color: _getStatusColor(status), fontWeight: FontWeight.bold, fontSize: 11)
-                      ),
+                      child: Text(_getStatusText(status), style: TextStyle(fontWeight: FontWeight.bold, color: _getStatusColor(status), fontSize: 11)),
                     ),
                   ],
                 ),
                 
-                // Kanan: Tombol Hapus
-                IconButton(
-                  icon: Icon(Icons.delete_outline, color: Colors.red[300], size: 20),
-                  onPressed: () => _deleteItem(id), // Panggil fungsi hapus dengan ID
-                  tooltip: "Hapus Data",
-                  constraints: BoxConstraints(), 
-                  padding: EdgeInsets.zero,
+                // Kanan: Tombol Hapus dengan Loading
+                GestureDetector(
+                  onTap: isDeleting ? null : () => _deleteItem(id),
+                  child: Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(isDeleting ? 0.3 : 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: isDeleting
+                      ? SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.red))
+                      : Icon(Icons.delete_outline_rounded, color: Colors.red, size: 18),
+                  ),
                 )
               ],
             ),
@@ -295,25 +436,25 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
 
           // --- FOOTER ACTION ---
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
             child: Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
+                  child: ElevatedButton.icon(
                     onPressed: () => _showBuktiDialog(dataBukti, user['nama']),
                     icon: Icon(
-                      dataBukti == null ? Icons.warning_amber_rounded : (isImageBukti ? Icons.image_rounded : Icons.receipt_long_rounded),
+                      dataBukti == null ? Icons.upload_file_rounded : (isImageBukti ? Icons.image_rounded : Icons.receipt_rounded),
                       size: 16,
-                      color: dataBukti == null ? Colors.grey : Colors.blue
                     ),
                     label: Text(
-                      dataBukti == null ? "Belum Bayar" : (isImageBukti ? "Cek Foto" : "Cek Kode"),
-                      style: TextStyle(fontSize: 12, color: dataBukti == null ? Colors.grey : Colors.blue)
+                      dataBukti == null ? "Belum Ada" : (isImageBukti ? "Cek Foto" : "Cek Kode"),
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)
                     ),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(vertical: 10),
-                      side: BorderSide(color: Colors.grey[300]!),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: dataBukti != null ? Colors.blue : Colors.grey[400],
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))
                     ),
                   ),
                 ),
@@ -324,28 +465,33 @@ class _ManageReservasiScreenState extends State<ManageReservasiScreen> {
                   child: PopupMenuButton<String>(
                     offset: Offset(0, 40),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                    child: Container(
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: mainColor,
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: [BoxShadow(color: mainColor.withOpacity(0.3), blurRadius: 5, offset: Offset(0, 2))]
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text("Ubah Status", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                          SizedBox(width: 5),
-                          Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 16)
-                        ],
-                      ),
-                    ),
-                    onSelected: (val) => _updateStatus(item['id'], val),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(value: 'dibayar', child: Text("Terima Bayar (Lunas)")),
-                      PopupMenuItem(value: 'selesai', child: Text("Selesai (Liburan)")),
-                      PopupMenuItem(value: 'batal', child: Text("Tolak / Batal", style: TextStyle(color: Colors.red))),
+                    onSelected: (value) => _updateStatus(id, value),
+                    itemBuilder: (BuildContext context) => [
+                      PopupMenuItem(value: 'menunggu', child: Row(children: [Icon(Icons.hourglass_bottom, size: 16, color: Colors.orange), SizedBox(width: 10), Text("Verifikasi")])),
+                      PopupMenuItem(value: 'dibayar', child: Row(children: [Icon(Icons.check_circle, size: 16, color: Colors.purple), SizedBox(width: 10), Text("Lunas")])),
+                      PopupMenuItem(value: 'selesai', child: Row(children: [Icon(Icons.done_all, size: 16, color: Colors.green), SizedBox(width: 10), Text("Selesai")])),
+                      PopupMenuItem(value: 'batal', child: Row(children: [Icon(Icons.cancel, size: 16, color: Colors.red), SizedBox(width: 10), Text("Batal")])),
                     ],
+                    child: Container(
+                      height: 44,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [mainColor, secondaryColor]),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [BoxShadow(color: mainColor.withOpacity(0.3), blurRadius: 8, offset: Offset(0, 3))]
+                      ),
+                      child: isUpdating
+                        ? Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)))
+                        : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.edit, color: Colors.white, size: 16),
+                            SizedBox(width: 8),
+                            Text("Status", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                            SizedBox(width: 4),
+                            Icon(Icons.expand_more, color: Colors.white, size: 16)
+                          ],
+                        ),
+                    ),
                   ),
                 ),
               ],

@@ -4,8 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationService {
   // Sesuaikan IP (10.0.2.2 untuk Emulator)
-  // final String baseUrl = 'http://10.0.2.2:8000/api/notifikasi';
-  final String baseUrl = 'http://172.27.81.234:8000/api/notifikasi'; 
+  final String baseUrl = 'http://10.0.2.2:8000/api/notifikasi';
+  //final String baseUrl = 'http://172.27.81.234:8000/api/notifikasi'; 
 
   Future<List<dynamic>> getNotifications() async {
     try {
