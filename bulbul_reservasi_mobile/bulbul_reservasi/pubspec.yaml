@@ -5,20 +5,31 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.9.0
+  sdk: ^3.9.0 # Pastikan versi SDK Dart Anda sesuai
 
 dependencies:
   flutter:
     sdk: flutter
-  url_launcher: ^6.1.11 
+
+  # --- UI & Icons ---
   cupertino_icons: ^1.0.8
+  google_fonts: ^6.3.2
+  
+  # --- Logic & Data ---
   http: ^1.2.0
   shared_preferences: ^2.3.2
-  google_fonts: ^6.3.2
-  image_picker: ^1.0.7
+  intl: ^0.19.0  # Untuk format Tanggal & Rupiah
   
-  # TAMBAHAN PENTING UNTUK PAYMENT (Format Tanggal & Uang)
-  intl: ^0.19.0
+  # --- Fitur Device ---
+  image_picker: ^1.0.7
+  url_launcher: ^6.3.0 # Untuk membuka WhatsApp
+  geolocator: ^9.0.2
+  
+  # --- Animasi (PENTING untuk kode BerandaTab baru) ---
+  animate_do: ^3.3.4 
+
+  # --- File Picker ---
+  file_picker: ^8.0.0
 
 dev_dependencies:
   flutter_test:
@@ -30,7 +41,7 @@ flutter:
 
   assets:
     # Pastikan file-file ini BENAR-BENAR ADA di folder laptop Anda
-    # assets/images/....
+    # Perhatikan ekstensi file (.jpg vs .jpeg)
     - assets/images/pantai_landingscreens.jpg
     - assets/images/pondok.jpg
     - assets/images/banana_boat.jpg

@@ -1,11 +1,12 @@
 import 'dart:convert';
-import 'dart:io'; // Untuk File
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class FacilityService {
-  // Ganti IP Laptop Anda
-   final String baseUrl = 'http://10.0.2.2:8000/api/fasilitas'; 
+  // Sesuaikan IP Laptop Anda
+  //final String baseUrl = 'http://10.0.2.2:8000/api/fasilitas'; 
+  final String baseUrl = 'http://172.27.81.234:8000/api/fasilitas';
 
   Future<Map<String, String>> _getHeaders() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -13,7 +14,6 @@ class FacilityService {
     return {
       'Authorization': 'Bearer $token',
       'Accept': 'application/json', 
-      // Content-Type jangan diset manual saat Multipart, biarkan otomatis
     };
   }
 
@@ -31,52 +31,49 @@ class FacilityService {
     }
   }
 
-  // POST DENGAN GAMBAR
-// POST (TAMBAH DATA)
+  // --- 1. ADD FACILITY ---
   Future<bool> addFacility(Map<String, dynamic> data, File? imageFile) async {
     try {
       var uri = Uri.parse(baseUrl);
       var request = http.MultipartRequest('POST', uri);
 
-      // Header Token
       Map<String, String> headers = await _getHeaders();
       request.headers.addAll(headers);
 
-      // Field Text
+      // Masukkan Text Fields
       request.fields['nama_fasilitas'] = data['nama_fasilitas'];
-      request.fields['deskripsi'] = data['deskripsi'] ?? '';
+      request.fields['deskripsi'] = data['deskripsi'];
       request.fields['harga'] = data['harga'].toString();
       request.fields['stok'] = data['stok'].toString();
       request.fields['status'] = data['status'];
-      request.fields['foto'] = data['foto'] ?? '';
+      
+      // --- WAJIB TAMBAHKAN INI ---
+      // SAAT TAMBAH/EDIT:
+      bool isPromoBool = data['is_promo'] == 1 || data['is_promo'] == true;
+      // Agar status promo terkirim ke Laravel
+      // Kita kirim sebagai string "1" atau "0"
+      request.fields['is_promo'] = isPromoBool ? "1" : "0";
+      // ---------------------------
 
-      // File Gambar
       if (imageFile != null) {
         request.files.add(await http.MultipartFile.fromPath('foto', imageFile.path));
       }
 
-      print("🔵 Mengirim Data ke: $uri");
-      print("🔵 Data: ${request.fields}");
+      print("🔵 Kirim Data: ${request.fields}"); // Debugging
 
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
 
-      print("🟢 Status Code: ${response.statusCode}");
-      print("🟢 Response Body: ${response.body}"); // INI YANG PENTING DIBACA
+      print("🟢 Status: ${response.statusCode} Body: ${response.body}");
 
-      if (response.statusCode == 201) {
-        return true;
-      } else {
-        return false;
-      }
+      return response.statusCode == 201;
     } catch (e) {
-      print("🔴 Error Connection: $e");
+      print("Error Add: $e");
       return false;
     }
   }
 
-  // UPDATE DENGAN GAMBAR
-  // Laravel PUT Multipart agak tricky, kita pakai POST dengan _method: PUT
+  // --- 2. UPDATE FACILITY ---
   Future<bool> updateFacility(int id, Map<String, dynamic> data, File? imageFile) async {
     try {
       var uri = Uri.parse('$baseUrl/$id');
@@ -85,14 +82,19 @@ class FacilityService {
       Map<String, String> headers = await _getHeaders();
       request.headers.addAll(headers);
       
-      // Trik Laravel untuk PUT dengan gambar
       request.fields['_method'] = 'PUT'; 
-
       request.fields['nama_fasilitas'] = data['nama_fasilitas'];
       request.fields['deskripsi'] = data['deskripsi'];
-      request.fields['harga'] = data['harga'];
-      request.fields['stok'] = data['stok'];
+      request.fields['harga'] = data['harga'].toString();
+      request.fields['stok'] = data['stok'].toString();
       request.fields['status'] = data['status'];
+      
+      // --- WAJIB TAMBAHKAN INI JUGA ---
+      // SAAT TAMBAH/EDIT:
+      bool isPromoBool = data['is_promo'] == 1 || data['is_promo'] == true;
+      // KIRIM SEBAGAI STRING "1" ATAU "0"
+      request.fields['is_promo'] = isPromoBool ? "1" : "0";
+      // --------------------------------
 
       if (imageFile != null) {
         request.files.add(await http.MultipartFile.fromPath('foto', imageFile.path));
@@ -101,20 +103,15 @@ class FacilityService {
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
 
-      if (response.statusCode == 200) {
-        return true;
-      } else {
-        print("Gagal Update: ${response.body}");
-        return false;
-      }
+      return response.statusCode == 200;
     } catch (e) {
       print("Error Update: $e");
       return false;
     }
   }
-
+  
+  // ... fungsi deleteFacility sama ...
   Future<bool> deleteFacility(int id) async {
-    // ... (Code delete sama seperti sebelumnya)
     try {
       final headers = await _getHeaders();
       final response = await http.delete(Uri.parse('$baseUrl/$id'), headers: headers);
@@ -123,4 +120,5 @@ class FacilityService {
       return false;
     }
   }
+
 }

@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 
 // Import screen Anda (sesuaikan jika path berubah, tapi ini sesuai kode Anda)
 import 'package:bulbul_reservasi/screens/users/landing_screen.dart'; 
+import 'package:bulbul_reservasi/screens/users/splash_screen.dart';
 
 void main() async {
   // 2. Pastikan binding siap sebelum menjalankan kode async
@@ -50,7 +51,7 @@ class _MyAppState extends State<MyApp> {
         ),
       ),
       
-      home: LandingScreen(),
+      home: const SplashScreen(),
     );
   }
 }

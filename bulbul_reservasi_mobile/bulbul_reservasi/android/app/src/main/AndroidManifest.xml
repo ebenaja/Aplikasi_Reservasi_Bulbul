@@ -5,7 +5,7 @@
     <!-- 1. IZIN AKSES (PERMISSIONS)                               -->
     <!-- ========================================================= -->
     
-    <!-- Internet (Wajib untuk API) -->
+    <!-- Internet (Wajib untuk API ke Laravel) -->
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <!-- Galeri & Penyimpanan (Untuk Android 10 ke bawah) -->
@@ -15,7 +15,13 @@
     <!-- Galeri (Untuk Android 13+) -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
     
-    <!-- Kamera -->
+    <!-- Akses Google Foto / Galeri Cloud -->
+    <uses-permission android:name="com.google.android.apps.photos.permission.GOOGLE_PHOTOS"/>
+    
+    <!-- Lokasi (GPS) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Kamera (Untuk ambil foto bukti bayar/fasilitas) -->
     <uses-permission android:name="android.permission.CAMERA"/>
 
     <!-- ========================================================= -->
@@ -29,6 +35,7 @@
         android:requestLegacyExternalStorage="true"
         android:enableOnBackInvokedCallback="true">
         
+        <!-- Konfigurasi Activity Utama Flutter -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -56,8 +63,8 @@
     </application>
     
     <!-- ========================================================= -->
-    <!-- 3. QUERIES (WAJIB UNTUK ANDROID 11/API 30+)               -->
-    <!-- Tanpa ini, WhatsApp & Kamera akan error/crash             -->
+    <!-- 3. QUERIES (WAJIB UNTUK ANDROID 11 / API 30+)             -->
+    <!-- Tanpa ini, fitur WhatsApp, Telepon & Kamera akan crash    -->
     <!-- ========================================================= -->
     <queries>
         <!-- Diperlukan untuk text selection Flutter -->
@@ -66,7 +73,7 @@
             <data android:mimeType="text/plain"/>
         </intent>
         
-        <!-- PENTING: Izin membuka URL eksternal (WhatsApp, Browser) -->
+        <!-- Membuka URL (Browser & WhatsApp Web Link) -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="https" />
@@ -75,19 +82,31 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="http" />
         </intent>
+        
+        <!-- Membuka Telepon (Dialer) -->
         <intent>
             <action android:name="android.intent.action.DIAL" />
             <data android:scheme="tel" />
         </intent>
+        
+        <!-- Membuka SMS (Optional) -->
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="smsto" />
+        </intent>
+
+        <!-- Membuka Aplikasi Lain (Share) -->
         <intent>
             <action android:name="android.intent.action.SEND" />
             <data android:mimeType="*/*" />
         </intent>
 
-        <!-- PENTING: Izin membuka Kamera & Galeri -->
+        <!-- Membuka Kamera -->
         <intent>
             <action android:name="android.media.action.IMAGE_CAPTURE" />
         </intent>
+        
+        <!-- Membuka Galeri -->
         <intent>
             <action android:name="android.intent.action.GET_CONTENT" />
             <data android:mimeType="*/*" />

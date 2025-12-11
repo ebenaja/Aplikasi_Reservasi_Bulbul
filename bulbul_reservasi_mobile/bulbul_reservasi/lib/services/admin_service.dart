@@ -4,7 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AdminService {
   // Ganti IP Laptop Anda (Pastikan benar, misal 192.168.x.x atau 10.0.2.2)
-  final String baseUrl = 'http://10.0.2.2:8000/api/admin'; 
+  //final String baseUrl = 'http://10.0.2.2:8000/api/admin';
+  final String baseUrl = 'http://172.27.81.234:8000/api/admin'; 
 
   Future<Map<String, String>> _getHeaders() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();

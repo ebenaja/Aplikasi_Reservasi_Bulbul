@@ -17,6 +17,7 @@ public function up(): void
             $table->string('status', 20)->default('tersedia'); // tersedia / disewa
             $table->string('foto', 255)->nullable(); // Menyimpan path/url foto
             $table->timestamps();
+            $table->boolean('is_promo')->default(false);
         });
     }
 

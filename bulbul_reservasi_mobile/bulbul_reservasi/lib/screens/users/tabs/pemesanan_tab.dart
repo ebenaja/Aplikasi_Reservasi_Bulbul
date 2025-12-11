@@ -1,12 +1,15 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:animate_do/animate_do.dart'; // Pastikan animate_do ada di pubspec.yaml
 import 'package:bulbul_reservasi/services/reservasi_service.dart';
 import 'package:bulbul_reservasi/screens/users/add_review_dialog.dart';
-import 'package:bulbul_reservasi/screens/users/order_detail_screen.dart'; 
-import 'package:bulbul_reservasi/screens/users/payment_instruction_screen.dart';
 import 'package:bulbul_reservasi/screens/users/payment_success_screen.dart'; 
+import 'package:bulbul_reservasi/utils/image_picker_helper.dart';
+
+// import 'package:bulbul_reservasi/screens/users/order_detail_screen.dart'; // Uncomment jika sudah ada
+// import 'package:bulbul_reservasi/screens/users/payment_instruction_screen.dart'; // Uncomment jika sudah ada
 
 class PemesananTab extends StatefulWidget {
   const PemesananTab({super.key});
@@ -18,6 +21,7 @@ class PemesananTab extends StatefulWidget {
 class _PemesananTabState extends State<PemesananTab> {
   final ReservasiService _reservasiService = ReservasiService();
   final Color mainColor = const Color(0xFF50C2C9);
+  final Color secondaryColor = const Color(0xFF2E8B91);
   
   List<dynamic> _allHistory = [];
   List<dynamic> _filteredList = [];
@@ -31,9 +35,16 @@ class _PemesananTabState extends State<PemesananTab> {
     super.initState();
     _fetchHistory();
   }
+  
+  // Agar data refresh saat tab dibuka kembali
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _fetchHistory();
+  }
 
   void _fetchHistory() async {
-    if (mounted) setState(() => _isLoading = true);
+    // if (mounted) setState(() => _isLoading = true); // Optional: loading state
     
     try {
       final data = await _reservasiService.getHistory();
@@ -76,131 +87,100 @@ class _PemesananTabState extends State<PemesananTab> {
     if (dateStr == null) return "-";
     try {
       DateTime dt = DateTime.parse(dateStr);
-      return DateFormat('dd MMM yyyy, HH:mm').format(dt);
+      return DateFormat('dd MMM yyyy').format(dt);
     } catch (e) { return dateStr; }
   }
 
-  // --- NAVIGASI SUKSES ---
-  void _navigateToSuccess() {
-    if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const PaymentSuccessScreen()),
-    );
-  }
-
-  // --- UPLOAD BUKTI (AMAN DARI CRASH) ---
+  // --- LOGIKA UPLOAD GAMBAR ---
   void _uploadBuktiGambar(int reservasiId) async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 40); // Kompresi biar cepat
+    // Tampilkan dialog pilihan sumber gambar
+    File? imageFile = await ImagePickerHelper.pickImageWithOptions(context);
     
-    if (pickedFile != null) {
-      // Tampilkan notifikasi kecil saja (bukan dialog yang memblokir layar)
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Sedang mengupload..."), duration: Duration(seconds: 1))
-      );
-
-      // Proses Upload
-      bool success = await _reservasiService.uploadBukti(reservasiId, File(pickedFile.path));
-      
-      // PERBAIKAN: Cek mounted sebelum navigasi
-      if (!mounted) return; 
-
-      if (success) {
-        _navigateToSuccess();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Gagal Upload. Cek koneksi."), backgroundColor: Colors.red)
-        );
+    if (imageFile != null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mengupload bukti...")));
+      bool success = await _reservasiService.uploadBukti(reservasiId, imageFile);
+      if (mounted) {
+        if (success) {
+          _fetchHistory();
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Berhasil! Menunggu Verifikasi."), backgroundColor: Colors.green));
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Gagal Upload."), backgroundColor: Colors.red));
+        }
       }
     }
   }
 
-  // --- INPUT REFERENSI (AMAN DARI CRASH) ---
+  // --- LOGIKA INPUT REFERENSI (YANG HILANG TADI) ---
   void _inputNomorReferensi(int reservasiId) {
     TextEditingController refController = TextEditingController();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Konfirmasi Pembayaran"),
-        content: TextField(
-          controller: refController,
-          decoration: InputDecoration(
-            labelText: "No. Referensi / Catatan",
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-            hintText: "Contoh: Sudah transfer a.n Budi"
-          ),
+        title: Text("Konfirmasi Manual"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text("Masukkan No. Referensi / Catatan Transfer:"),
+            SizedBox(height: 10),
+            TextField(
+              controller: refController,
+              decoration: InputDecoration(
+                hintText: "Contoh: Transfer a.n Budi",
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))
+              ),
+            ),
+          ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("Batal")),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: mainColor),
             onPressed: () async {
-              if (refController.text.isEmpty) return;
-              
-              // 1. Tutup Dialog Input SEGERA
-              Navigator.pop(context); 
-
-              // 2. Beri Feedback SnackBar
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Mengirim konfirmasi..."), duration: Duration(seconds: 1))
-              );
-
-              // 3. Kirim ke Server
-              bool success = await _reservasiService.konfirmasiPembayaran(reservasiId, refController.text);
-              
-              // 4. PERBAIKAN UTAMA: Cek mounted sebelum navigasi lagi
-              if (!mounted) return; 
-
-              if (success) {
-                _navigateToSuccess();
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Gagal mengirim konfirmasi"), backgroundColor: Colors.red)
-                );
+              if (refController.text.isNotEmpty) {
+                Navigator.pop(context); // Tutup dialog
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mengirim data...")));
+                
+                bool success = await _reservasiService.konfirmasiManual(reservasiId, refController.text);
+                
+                if (success) {
+                  _fetchHistory();
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Konfirmasi Terkirim!"), backgroundColor: Colors.green));
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Gagal Mengirim."), backgroundColor: Colors.red));
+                }
               }
-            },
-            child: const Text("Kirim", style: TextStyle(color: Colors.white)),
+            }, 
+            child: Text("Kirim", style: TextStyle(color: Colors.white))
           )
         ],
       ),
     );
   }
-
-  // --- BATALKAN PESANAN ---
+  
+  // --- LOGIKA BATALKAN ---
   void _cancelOrder(int reservasiId) async {
     bool confirm = await showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Batalkan Pesanan?"),
-        content: const Text("Yakin ingin membatalkan pesanan ini?"),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text("Batalkan Pesanan"),
+        content: const Text("Yakin ingin membatalkan?"),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Tidak")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Ya, Batalkan", style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Ya", style: TextStyle(color: Colors.red))),
         ],
       ),
     ) ?? false;
 
     if (confirm) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Memproses pembatalan...")));
-      
-      bool success = await _reservasiService.cancelReservasi(reservasiId);
-      
-      if (!mounted) return;
-
-      if (success) {
-        _fetchHistory(); 
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Pesanan dibatalkan"), backgroundColor: Colors.red));
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Gagal membatalkan pesanan"), backgroundColor: Colors.black));
-      }
+      // Panggil API Cancel (Pastikan di service ada fungsi cancelReservasi)
+      // await _reservasiService.cancelReservasi(reservasiId); 
+      // _fetchHistory();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Fitur Batal belum diimplementasikan di backend")));
     }
   }
 
   void _showPaymentOptions(Map<String, dynamic> item) {
     int reservasiId = item['id'];
-    double totalHarga = double.tryParse(item['total_harga'].toString()) ?? 0;
 
     showModalBottomSheet(
       context: context,
@@ -213,50 +193,38 @@ class _PemesananTabState extends State<PemesananTab> {
             children: [
               Container(width: 50, height: 5, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10))),
               const SizedBox(height: 20),
-              const Text("Metode Konfirmasi", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-              const SizedBox(height: 10),
-              const Text("Pilih langkah yang ingin Anda lakukan:", style: TextStyle(color: Colors.grey)),
-              const SizedBox(height: 25),
+              const Text("Konfirmasi Pembayaran", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              const SizedBox(height: 20),
               
-              _buildOptionTile(
-                Icons.info_outline, "Lihat Instruksi Transfer", "Nomor Rekening & Cara Bayar", 
-                () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentInstructionScreen(totalHarga: totalHarga, reservasiId: reservasiId)));
-                }
-              ),
-              const SizedBox(height: 15),
-              _buildOptionTile(
-                Icons.cloud_upload_outlined, "Upload Bukti Foto", "Screenshot transfer / struk", 
-                () {
+              // OPSI 1: UPLOAD GAMBAR
+              ListTile(
+                leading: Container(padding: EdgeInsets.all(10), decoration: BoxDecoration(color: mainColor.withOpacity(0.1), shape: BoxShape.circle), child: Icon(Icons.cloud_upload, color: mainColor)),
+                title: Text("Upload Bukti Transfer"),
+                subtitle: Text("Foto struk/screenshot"),
+                onTap: () {
                   Navigator.pop(context); 
                   _uploadBuktiGambar(reservasiId);
-                }
+                },
+                trailing: Icon(Icons.arrow_forward_ios, size: 16),
               ),
-              const SizedBox(height: 15),
-               _buildOptionTile(
-                Icons.edit, "Input No. Referensi", "Input manual jika gagal upload", 
-                () {
-                  Navigator.pop(context); 
+              
+              Divider(),
+
+              // OPSI 2: INPUT REFERENSI (INI YANG KEMARIN HILANG)
+              ListTile(
+                leading: Container(padding: EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), shape: BoxShape.circle), child: Icon(Icons.edit_note, color: Colors.orange)),
+                title: Text("Input No. Referensi"),
+                subtitle: Text("Jika tidak ada foto"),
+                onTap: () {
+                  Navigator.pop(context);
                   _inputNomorReferensi(reservasiId);
-                }
+                },
+                trailing: Icon(Icons.arrow_forward_ios, size: 16),
               ),
-              const SizedBox(height: 10),
             ],
           ),
         );
       },
-    );
-  }
-
-  Widget _buildOptionTile(IconData icon, String title, String sub, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))]),
-        child: Row(children: [Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: mainColor.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: mainColor)), const SizedBox(width: 15), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), Text(sub, style: const TextStyle(color: Colors.grey, fontSize: 12))])), Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[300])]),
-      ),
     );
   }
 
@@ -273,29 +241,64 @@ class _PemesananTabState extends State<PemesananTab> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: AppBar(title: const Text("Riwayat Pesanan", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)), backgroundColor: mainColor, elevation: 0, centerTitle: true, automaticallyImplyLeading: false),
+      backgroundColor: Color(0xFFF5F6FA), // Warna konsisten
+      appBar: AppBar(
+        title: const Text("Riwayat Pesanan", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)), 
+        backgroundColor: mainColor, 
+        elevation: 0, 
+        centerTitle: true, 
+        automaticallyImplyLeading: false
+      ),
       body: Column(
         children: [
+          // FILTER TAB BAR
           Container(
             width: double.infinity, color: Colors.white, padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
             child: SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: _filters.map((filter) {
                   bool isSelected = _selectedFilter == filter;
-                  return GestureDetector(onTap: () { setState(() { _selectedFilter = filter; _filterData(); }); }, child: AnimatedContainer(duration: const Duration(milliseconds: 300), curve: Curves.easeInOut, margin: const EdgeInsets.only(right: 12), padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), decoration: BoxDecoration(color: isSelected ? mainColor : Colors.grey[100], borderRadius: BorderRadius.circular(30), boxShadow: isSelected ? [BoxShadow(color: mainColor.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))] : []), child: Text(filter, style: TextStyle(color: isSelected ? Colors.white : Colors.grey[600], fontWeight: FontWeight.bold, fontSize: 13))));
+                  return GestureDetector(
+                    onTap: () { setState(() { _selectedFilter = filter; _filterData(); }); }, 
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300), 
+                      curve: Curves.easeInOut, 
+                      margin: const EdgeInsets.only(right: 12), 
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), 
+                      decoration: BoxDecoration(
+                        color: isSelected ? mainColor : Colors.grey[100], 
+                        borderRadius: BorderRadius.circular(30), 
+                        boxShadow: isSelected ? [BoxShadow(color: mainColor.withOpacity(0.4), blurRadius: 8, offset: const Offset(0, 4))] : []
+                      ), 
+                      child: Text(filter, style: TextStyle(color: isSelected ? Colors.white : Colors.grey[600], fontWeight: FontWeight.bold, fontSize: 13))
+                    )
+                  );
                 }).toList())),
           ),
+          
+          // LIST DATA
           Expanded(
             child: _isLoading
                 ? Center(child: CircularProgressIndicator(color: mainColor))
                 : _filteredList.isEmpty
-                    ? Center(child: Text("Tidak ada pesanan $_selectedFilter", style: TextStyle(color: Colors.grey[600])))
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.receipt_long_rounded, size: 80, color: Colors.grey[300]),
+                            SizedBox(height: 15),
+                            Text("Belum ada pesanan $_selectedFilter", style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+                          ],
+                        )
+                      )
                     : RefreshIndicator(
                         onRefresh: () async => _fetchHistory(),
                         color: mainColor,
                         child: ListView.builder(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
                           itemCount: _filteredList.length,
-                          itemBuilder: (context, index) => _buildHistoryCard(_filteredList[index]),
+                          itemBuilder: (context, index) => FadeInUp( // Animasi Masuk
+                            delay: Duration(milliseconds: index * 100),
+                            child: _buildHistoryCard(_filteredList[index])
+                          ),
                         ),
                       ),
           ),
@@ -308,7 +311,7 @@ class _PemesananTabState extends State<PemesananTab> {
     final fasilitas = item['fasilitas'];
     final status = item['status'] ?? 'pending';
     final totalHarga = formatRupiah(item['total_harga']);
-    final tanggal = formatDate(item['created_at']);
+    final tanggal = formatDate(item['tanggal_sewa']); // Pastikan field tanggal benar
     final String? imgUrl = fasilitas != null ? fasilitas['foto'] : null;
     final String title = fasilitas != null ? fasilitas['nama_fasilitas'] : 'Item Dihapus';
 
@@ -317,76 +320,77 @@ class _PemesananTabState extends State<PemesananTab> {
     switch (status.toLowerCase()) {
       case 'selesai': statusColor = Colors.green; statusText = "Selesai"; break;
       case 'menunggu': statusColor = Colors.blueAccent; statusText = "Verifikasi"; break;
-      case 'pending': statusColor = Colors.orange; statusText = "Bayar"; break;
-      case 'batal': case 'cancelled': statusColor = Colors.redAccent; statusText = "Batal"; break;
+      case 'pending': statusColor = Colors.orange; statusText = "Belum Bayar"; break;
+      case 'batal': statusColor = Colors.redAccent; statusText = "Dibatalkan"; break;
       default: statusColor = Colors.grey; statusText = status;
     }
 
-    return GestureDetector(
-      onTap: () {
-         Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => OrderDetailScreen(transaction: item)),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))]),
-        child: Column(
-          children: [ 
-            Stack(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))]),
+      child: Column(
+        children: [ 
+          Stack(
+            children: [
+              ClipRRect(borderRadius: const BorderRadius.vertical(top: Radius.circular(20)), child: SizedBox(height: 140, width: double.infinity, child: _buildImage(imgUrl))),
+              Positioned(top: 12, right: 12, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(20), boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)]), child: Text(statusText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)))),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(borderRadius: const BorderRadius.vertical(top: Radius.circular(20)), child: SizedBox(height: 140, width: double.infinity, child: _buildImage(imgUrl))),
-                Positioned(top: 12, right: 12, child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: statusColor, borderRadius: BorderRadius.circular(20), boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 4)]), child: Text(statusText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)))),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis)),
+                    Text(tanggal, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text("Total: $totalHarga", style: TextStyle(color: secondaryColor, fontWeight: FontWeight.w800, fontSize: 15)),
+                const SizedBox(height: 15),
+                
+                // TOMBOL AKSI
+                if (status.toLowerCase() == 'pending') 
+                  Row(children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => _cancelOrder(item['id']),
+                        style: OutlinedButton.styleFrom(side: const BorderSide(color: Colors.redAccent), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                        child: const Text("Batal", style: TextStyle(color: Colors.redAccent)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () => _showPaymentOptions(item),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                        child: const Text("Bayar", style: TextStyle(color: Colors.white)),
+                      ),
+                    ),
+                  ])
+                else if (status.toLowerCase() == 'selesai' || status.toLowerCase() == 'dibayar' || status.toLowerCase() == 'success')
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => _openReviewDialog(fasilitas != null ? fasilitas['id'] : 0),
+                      style: OutlinedButton.styleFrom(side: BorderSide(color: mainColor), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                      child: Text("Beri Ulasan", style: TextStyle(color: mainColor)),
+                    ),
+                  )
+                else if (status.toLowerCase() == 'menunggu')
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                    child: Center(child: Text("Menunggu Verifikasi Admin", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12))),
+                  )
               ],
             ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 6),
-                  Text("Tgl: $tanggal", style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                  const SizedBox(height: 15),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(totalHarga, style: TextStyle(color: mainColor, fontWeight: FontWeight.w900, fontSize: 16)),
-                      
-                      if (status == 'pending') 
-                        Row(children: [
-                          OutlinedButton(
-                            onPressed: () => _cancelOrder(item['id']),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.redAccent),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              minimumSize: const Size(60, 30),
-                              padding: const EdgeInsets.symmetric(horizontal: 10)
-                            ),
-                            child: const Text("Batal", style: TextStyle(color: Colors.redAccent, fontSize: 12)),
-                          ),
-                          const SizedBox(width: 8),
-                          ElevatedButton(
-                            onPressed: () => _showPaymentOptions(item),
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                            child: const Text("Bayar", style: TextStyle(color: Colors.white)),
-                          ),
-                        ])
-                      else if (status == 'selesai')
-                        OutlinedButton(
-                          onPressed: () => _openReviewDialog(fasilitas != null ? fasilitas['id'] : 0),
-                          child: const Text("Ulas"),
-                        )
-                       else if (status == 'menunggu')
-                        const Text("Diproses Admin", style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, fontSize: 12))
-                    ],
-                  )
-                ],
-              ),
-            )
-          ],
-        ),
+          )
+        ],
       ),
     );
   }

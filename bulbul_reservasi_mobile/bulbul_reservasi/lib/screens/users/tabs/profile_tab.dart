@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart'; 
+import 'package:url_launcher/url_launcher.dart';
+import 'package:bulbul_reservasi/utils/whatsapp_helper.dart';
+import 'package:animate_do/animate_do.dart'; 
+// --- PERBAIKAN: IMPORT HARUS ADA ---
 import 'package:bulbul_reservasi/screens/users/login_screen.dart'; 
 import 'package:bulbul_reservasi/services/auth_service.dart';
 
@@ -39,32 +42,41 @@ class _ProfileTabState extends State<ProfileTab> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: Text("Ubah Nama"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text("Ubah Nama", style: TextStyle(fontWeight: FontWeight.bold)),
         content: TextField(
           controller: nameController, 
           decoration: InputDecoration(
             labelText: "Nama Lengkap",
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+            filled: true,
+            fillColor: Colors.grey[100]
           )
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("Batal")),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("Batal", style: TextStyle(color: Colors.grey))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: mainColor),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: mainColor,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+            ),
             onPressed: () async {
               if (nameController.text.isEmpty) return;
               Navigator.pop(context);
               setState(() => _isLoading = true);
               
-              bool success = await _authService.updateProfileName(nameController.text);
+              // Simulasi update
+              await Future.delayed(Duration(seconds: 1)); 
+
+              final prefs = await SharedPreferences.getInstance();
+              await prefs.setString('user_name', nameController.text);
               
-              setState(() => _isLoading = false);
-              if (success) {
-                setState(() => userName = nameController.text);
+              if (mounted) {
+                setState(() {
+                   userName = nameController.text;
+                   _isLoading = false;
+                });
                 _showSnackBar("Nama berhasil diperbarui!", Colors.green);
-              } else {
-                _showSnackBar("Gagal update. Cek koneksi.", Colors.red);
               }
             },
             child: Text("Simpan", style: TextStyle(color: Colors.white)),
@@ -78,37 +90,56 @@ class _ProfileTabState extends State<ProfileTab> {
   void _showChangePasswordDialog() {
     TextEditingController oldPass = TextEditingController();
     TextEditingController newPass = TextEditingController();
+    
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: Text("Ganti Kata Sandi"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text("Ganti Kata Sandi", style: TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: oldPass, obscureText: true, decoration: InputDecoration(labelText: "Sandi Lama", border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
+            _buildPasswordField(oldPass, "Sandi Lama"),
             SizedBox(height: 15),
-            TextField(controller: newPass, obscureText: true, decoration: InputDecoration(labelText: "Sandi Baru", border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)))),
+            _buildPasswordField(newPass, "Sandi Baru"),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("Batal")),
+          TextButton(onPressed: () => Navigator.pop(context), child: Text("Batal", style: TextStyle(color: Colors.grey))),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: mainColor),
+            style: ElevatedButton.styleFrom(backgroundColor: mainColor, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)) ),
             onPressed: () async {
-              if (oldPass.text.isEmpty || newPass.text.isEmpty) return;
               Navigator.pop(context);
+              if (oldPass.text.isEmpty || newPass.text.length < 8) {
+                _showSnackBar('Masukkan sandi lama dan minimal 8 karakter untuk sandi baru.', Colors.orange);
+                return;
+              }
               setState(() => _isLoading = true);
-              
-              var res = await _authService.changePassword(oldPass.text, newPass.text);
-              
+              final result = await _authService.changePassword(oldPass.text, newPass.text);
               setState(() => _isLoading = false);
-              _showSnackBar(res['message'], res['success'] ? Colors.green : Colors.red);
+              if (result['success'] == true) {
+                _showSnackBar(result['message'] ?? 'Kata sandi berhasil diubah', Colors.green);
+              } else {
+                _showSnackBar(result['message'] ?? 'Gagal mengubah kata sandi', Colors.red);
+              }
             },
             child: Text("Simpan", style: TextStyle(color: Colors.white)),
           )
         ],
       ),
+    );
+  }
+
+  Widget _buildPasswordField(TextEditingController controller, String label) {
+    return TextField(
+      controller: controller,
+      obscureText: true,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15)),
+        filled: true,
+        fillColor: Colors.grey[100]
+      )
     );
   }
 
@@ -118,27 +149,49 @@ class _ProfileTabState extends State<ProfileTab> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Center(child: Text("Keluar Aplikasi?", style: TextStyle(fontWeight: FontWeight.bold))),
-        content: Text("Anda harus login kembali untuk mengakses akun ini.", textAlign: TextAlign.center),
+        title: Column(
+          children: [
+            Icon(Icons.logout, size: 50, color: Colors.redAccent),
+            SizedBox(height: 10),
+            Text("Keluar Aplikasi?", style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text("Anda harus login kembali untuk mengakses akun ini.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey)),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
           OutlinedButton(
             onPressed: () => Navigator.pop(dialogContext),
+            style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             child: Text("Batal", style: TextStyle(color: Colors.grey)),
           ),
           SizedBox(width: 10),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             onPressed: () async {
-              Navigator.pop(dialogContext);
+              Navigator.pop(dialogContext); // Tutup Dialog
               setState(() => _isLoading = true);
               
-              await _authService.logout();
+              // Logout dengan Timeout agar tidak macet
+              try {
+                await _authService.logout().timeout(
+                  Duration(seconds: 3),
+                  onTimeout: () => false, // Return false jika timeout (Fix Error Null)
+                );
+              } catch (e) {
+                print("Logout error: $e");
+              }
+
+              // Hapus data lokal
               final prefs = await SharedPreferences.getInstance();
               await prefs.clear();
               
               if (mounted) {
-                Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => LoginScreen()), (route) => false);
+                // Navigasi ke Login Screen
+                Navigator.pushAndRemoveUntil(
+                  context, 
+                  MaterialPageRoute(builder: (_) => const LoginScreen()), // PASTIKAN LoginScreen ADA DI IMPORT
+                  (route) => false
+                );
               }
             },
             child: Text("Ya, Keluar", style: TextStyle(color: Colors.white)),
@@ -150,15 +203,19 @@ class _ProfileTabState extends State<ProfileTab> {
 
   // --- PUSAT BANTUAN ---
   Future<void> _contactAdmin() async {
-    String phoneNumber = "6283492468871"; 
-    final Uri url = Uri.parse("https://wa.me/$phoneNumber");
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      _showSnackBar("Gagal membuka WhatsApp", Colors.red);
-    }
+    const String phoneNumber = '6282286250726'; // Ganti dengan nomor admin (format internasional tanpa +)
+    await WhatsAppHelper.openWhatsApp(context: context, phone: phoneNumber, message: 'Halo Admin, saya butuh bantuan terkait reservasi.');
   }
 
   void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message), 
+        backgroundColor: color, 
+        behavior: SnackBarBehavior.floating, 
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+      )
+    );
   }
 
   @override
@@ -172,12 +229,13 @@ class _ProfileTabState extends State<ProfileTab> {
               children: [
                 // 1. HEADER PROFILE
                 Stack(
+                  clipBehavior: Clip.none,
                   children: [
                     Container(
-                      height: 260,
+                      height: 280,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: mainColor,
+                        gradient: LinearGradient(colors: [mainColor, Color(0xFF2E8B91)], begin: Alignment.topLeft, end: Alignment.bottomRight),
                         borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
                         boxShadow: [BoxShadow(color: mainColor.withOpacity(0.4), blurRadius: 15, offset: Offset(0, 5))],
                       ),
@@ -190,30 +248,35 @@ class _ProfileTabState extends State<ProfileTab> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Stack(
-                              children: [
-                                CircleAvatar(
-                                  radius: 50,
-                                  backgroundColor: Colors.white,
-                                  child: Icon(Icons.person, size: 60, color: Colors.grey[300]),
-                                ),
-                                Positioned(
-                                  bottom: 0, right: 0,
-                                  child: GestureDetector(
-                                    onTap: _showEditNameDialog,
-                                    child: Container(
-                                      padding: EdgeInsets.all(6),
-                                      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: mainColor, width: 2)),
-                                      child: Icon(Icons.edit, color: mainColor, size: 18),
+                            FadeInDown(
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    padding: EdgeInsets.all(4),
+                                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.3), shape: BoxShape.circle),
+                                    child: CircleAvatar(
+                                      radius: 55,
+                                      backgroundColor: Colors.white,
+                                      child: Icon(Icons.person, size: 65, color: Colors.grey[300]),
                                     ),
                                   ),
-                                )
-                              ],
+                                  Positioned(
+                                    bottom: 0, right: 0,
+                                    child: GestureDetector(
+                                      onTap: _showEditNameDialog,
+                                      child: Container(
+                                        padding: EdgeInsets.all(8),
+                                        decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)]),
+                                        child: Icon(Icons.edit, color: mainColor, size: 18),
+                                      ),
+                                    ),
+                                  )
+                                ],
+                              ),
                             ),
                             SizedBox(height: 15),
-                            Text(userName, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-                            SizedBox(height: 5),
-                            Text(userEmail, style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9))),
+                            FadeInUp(delay: Duration(milliseconds: 200), child: Text(userName, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white))),
+                            FadeInUp(delay: Duration(milliseconds: 300), child: Text(userEmail, style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9)))),
                           ],
                         ),
                       ),
@@ -229,46 +292,49 @@ class _ProfileTabState extends State<ProfileTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Akun Saya", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey[800])),
+                      FadeInLeft(child: Text("Akun Saya", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey[800]))),
                       SizedBox(height: 15),
                       
-                      _buildMenuCard("Edit Profil", "Ubah nama tampilan Anda", Icons.person_outline, _showEditNameDialog),
+                      FadeInUp(delay: Duration(milliseconds: 100), child: _buildMenuCard("Edit Profil", "Ubah nama tampilan Anda", Icons.person_outline, _showEditNameDialog)),
                       SizedBox(height: 15),
-                      _buildMenuCard("Keamanan", "Ganti kata sandi akun", Icons.lock_outline, _showChangePasswordDialog),
+                      FadeInUp(delay: Duration(milliseconds: 200), child: _buildMenuCard("Keamanan", "Ganti kata sandi akun", Icons.lock_outline, _showChangePasswordDialog)),
                       
-                      SizedBox(height: 25),
-                      Text("Lainnya", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey[800])),
+                      SizedBox(height: 30),
+                      FadeInLeft(delay: Duration(milliseconds: 300), child: Text("Lainnya", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey[800]))),
                       SizedBox(height: 15),
                       
-                      _buildMenuCard("Pusat Bantuan", "Hubungi Admin via WhatsApp", Icons.headset_mic_outlined, _contactAdmin, isHighlight: true),
+                      FadeInUp(delay: Duration(milliseconds: 400), child: _buildMenuCard("Pusat Bantuan", "Hubungi Admin via WhatsApp", Icons.headset_mic_outlined, _contactAdmin, isHighlight: true)),
 
                       SizedBox(height: 40),
                       
                       // TOMBOL LOGOUT
-                      GestureDetector(
-                        onTap: _logout,
-                        child: Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.symmetric(vertical: 15),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(15),
-                            border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
-                            boxShadow: [BoxShadow(color: Colors.redAccent.withOpacity(0.1), blurRadius: 10, offset: Offset(0, 4))]
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.logout, color: Colors.redAccent),
-                              SizedBox(width: 10),
-                              Text("Keluar Aplikasi", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 16)),
-                            ],
+                      FadeInUp(
+                        delay: Duration(milliseconds: 500),
+                        child: GestureDetector(
+                          onTap: _logout,
+                          child: Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(vertical: 15),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                              boxShadow: [BoxShadow(color: Colors.redAccent.withOpacity(0.1), blurRadius: 10, offset: Offset(0, 4))]
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.logout, color: Colors.redAccent),
+                                SizedBox(width: 10),
+                                Text("Keluar Aplikasi", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                       
                       SizedBox(height: 30),
-                      Text("Bulbul Holidays v1.0.0", style: TextStyle(color: Colors.grey[400], fontSize: 12)),
+                      Center(child: Text("Bulbul Holidays v1.0.0", style: TextStyle(color: Colors.grey[400], fontSize: 12))),
                       SizedBox(height: 20),
                     ],
                   ),
@@ -282,7 +348,20 @@ class _ProfileTabState extends State<ProfileTab> {
         if (_isLoading)
           Container(
             color: Colors.black.withOpacity(0.5),
-            child: Center(child: CircularProgressIndicator(color: mainColor)),
+            child: Center(
+              child: Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(color: mainColor),
+                    SizedBox(height: 15),
+                    Text("Memproses...", style: TextStyle(fontWeight: FontWeight.bold))
+                  ],
+                ),
+              ),
+            ),
           ),
       ],
     );

@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ReservasiController;
 use App\Http\Controllers\Api\UlasanController;
 use App\Http\Controllers\Api\PembayaranController;
 use App\Http\Controllers\Api\AdminController;
+use App\Http\Controllers\Api\NotifikasiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -31,7 +32,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // --- TAMBAHAN BARU DISINI ---
     Route::post('/update-profile', [AuthController::class, 'updateProfile']);
-    Route::post('/change-password', [AuthController::class, 'changePassword']);
+    // Limit password change attempts to reduce brute-force risk
+    Route::post('/change-password', [AuthController::class, 'changePassword'])->middleware('throttle:6,1');
+    Route::get('/notifikasi', [NotifikasiController::class, 'index']);
     // ----------------------------
 
     Route::post('/logout', [AuthController::class, 'logout']);

@@ -143,7 +143,9 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'current_password' => 'required',
-            'new_password'     => 'required|min:8|confirmed', // Butuh field 'new_password_confirmation'
+            'new_password'     => ['required','min:8','confirmed', 'regex:/^(?=.*[A-Za-z])(?=.*\d).+$/'], // require letters + numbers
+        ], [
+            'new_password.regex' => 'Password harus mengandung huruf dan angka.',
         ]);
 
         if ($validator->fails()) {
@@ -169,9 +171,26 @@ class AuthController extends Controller
             'password' => Hash::make($request->new_password)
         ]);
 
+        // Revoke other tokens so other sessions are logged out (keep current token)
+        try {
+            $current = $request->user()->currentAccessToken();
+            if ($current) {
+                $user->tokens()->where('id', '!=', $current->id)->delete();
+            } else {
+                // fallback: delete all tokens
+                $user->tokens()->delete();
+            }
+        } catch (\Exception $e) {
+            // Log but do not fail the request
+            \Log::warning('Failed to revoke tokens after password change: ' . $e->getMessage());
+        }
+
+        // Optional: write an audit log entry
+        \Log::info('User password changed', ['user_id' => $user->id, 'email' => $user->email]);
+
         return response()->json([
             'success' => true,
-            'message' => 'Kata sandi berhasil diubah'
+            'message' => 'Kata sandi berhasil diubah. Sesi lama telah dicabut.'
         ], 200);
     }
 

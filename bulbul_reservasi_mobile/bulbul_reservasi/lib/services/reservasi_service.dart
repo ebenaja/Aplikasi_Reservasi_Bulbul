@@ -9,7 +9,8 @@ class ReservasiService {
   // Gunakan 10.0.2.2 jika pakai Emulator
   // Gunakan IP Laptop (misal 192.168.1.10) jika pakai HP Fisik
   // ------------------------------------------------------------------------
-  final String baseUrl = 'http://10.0.2.2:8000/api';
+  //final String baseUrl = 'http://10.0.2.2:8000/api';
+  final String baseUrl = 'http://172.27.81.234:8000/api';
 
   // ========================================================================
   // 1. BUAT RESERVASI
@@ -93,68 +94,59 @@ class ReservasiService {
   // 3. UPLOAD BUKTI PEMBAYARAN (GAMBAR)
   // ========================================================================
   Future<bool> uploadBukti(int reservasiId, File imageFile) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-
-    if (token == null) return false;
-
     try {
-      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/pembayaran'));
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String token = prefs.getString('token') ?? '';
+      String paymentUrl = baseUrl.replaceAll('api', 'api/pembayaran');
 
-      request.headers['Authorization'] = 'Bearer $token';
-      request.headers['Accept'] = 'application/json';
+      var uri = Uri.parse(paymentUrl);
+      var request = http.MultipartRequest('POST', uri);
+
+      request.headers.addAll({
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      });
 
       request.fields['reservasi_id'] = reservasiId.toString();
-      request.fields['status'] = 'menunggu';
+      request.files.add(await http.MultipartFile.fromPath('bukti', imageFile.path));
 
-      // Attach File Gambar
-      request.files.add(await http.MultipartFile.fromPath(
-        'bukti',
-        imageFile.path,
-      ));
-
-      print("🔵 Uploading Bukti...");
       var streamedResponse = await request.send();
       var response = await http.Response.fromStream(streamedResponse);
 
-      print("🟢 Status Upload: ${response.statusCode}");
-      print("🟢 Body Upload: ${response.body}");
-
-      return (response.statusCode == 201 || response.statusCode == 200);
+      return response.statusCode == 201;
     } catch (e) {
-      print("🔴 Error Upload: $e");
+      print("Error Upload: $e");
       return false;
     }
   }
 
   // ========================================================================
-  // 4. KONFIRMASI PEMBAYARAN (TEXT NO. REFERENSI)
+  // 4. KONFIRMASI MANUAL (TEXT / REFERENSI) - TAMBAHAN BARU
   // ========================================================================
-  Future<bool> konfirmasiPembayaran(int reservasiId, String noReferensi) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('token');
-
-    if (token == null) return false;
-
+  Future<bool> konfirmasiManual(int reservasiId, String catatan) async {
     try {
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      String token = prefs.getString('token') ?? '';
+      String paymentUrl = baseUrl.replaceAll('api', 'api/pembayaran');
+
       final response = await http.post(
-        Uri.parse('$baseUrl/pembayaran'),
+        Uri.parse(paymentUrl),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
+        // Kita kirim teks sebagai 'bukti' (Backend harus support string)
         body: jsonEncode({
           'reservasi_id': reservasiId,
-          'bukti': noReferensi,
-          'status': 'menunggu'
+          'bukti': "MANUAL: $catatan", 
+          'is_manual': true // Penanda buat backend (opsional)
         }),
       );
 
-      print("🟢 Status Konfirmasi: ${response.statusCode}");
-      return (response.statusCode == 201 || response.statusCode == 200);
+      return response.statusCode == 201;
     } catch (e) {
-      print("🔴 Error Konfirmasi: $e");
+      print("Error Konfirmasi Manual: $e");
       return false;
     }
   }

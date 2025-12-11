@@ -2,6 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalStorageService {
   static const String _keyFavorites = 'favorite_ids';
+  static const String _keyUseGpsWeather = 'use_gps_weather';
 
   // Ambil daftar ID yang difavoritkan
   Future<List<String>> getFavoriteIds() async {
@@ -28,5 +29,16 @@ class LocalStorageService {
     final prefs = await SharedPreferences.getInstance();
     List<String> ids = prefs.getStringList(_keyFavorites) ?? [];
     return ids.contains(id);
+  }
+
+  // Preference: apakah menggunakan GPS untuk mengambil cuaca
+  Future<bool> getUseGpsForWeather() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_keyUseGpsWeather) ?? false;
+  }
+
+  Future<void> setUseGpsForWeather(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_keyUseGpsWeather, value);
   }
 }

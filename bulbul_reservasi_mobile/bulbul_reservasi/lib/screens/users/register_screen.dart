@@ -104,9 +104,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   
-                  SizedBox(height: 30),
-                  Text("Welcome Onboard!", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87)),
-                  SizedBox(height: 10),
+                  SizedBox(height: 20),
+                  // Shared hero header
+                  Row(
+                    children: [
+                      Hero(
+                        tag: 'app-logo',
+                        child: Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                          child: Icon(Icons.beach_access_rounded, color: Color(0xFF50C2C9), size: 24),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Hero(
+                        tag: 'app-name',
+                        child: Material(type: MaterialType.transparency, child: Text('BulbulHolidays', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87))),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 18),
+                  Text("Welcome Onboard!", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  SizedBox(height: 8),
                   Text("Let’s help you meet up your tasks.", style: TextStyle(fontSize: 14, color: Colors.black54)),
                   SizedBox(height: 30),
 

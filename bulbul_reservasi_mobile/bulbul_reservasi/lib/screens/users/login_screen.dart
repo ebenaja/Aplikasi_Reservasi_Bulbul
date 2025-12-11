@@ -167,8 +167,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       SizedBox(height: 40), 
                     
                     SizedBox(height: 10),
-                    Text("Welcome Back!", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    Row(
+                      children: [
+                        Hero(
+                          tag: 'app-logo',
+                          child: Container(padding: EdgeInsets.all(8), decoration: BoxDecoration(shape: BoxShape.circle, color: mainColor.withOpacity(0.1)), child: Icon(Icons.beach_access_rounded, color: mainColor, size: 26)),
+                        ),
+                        SizedBox(width: 12),
+                        Hero(tag: 'app-name', child: Material(type: MaterialType.transparency, child: Text('BulbulHolidays', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87)))),
+                      ],
+                    ),
                     SizedBox(height: 10),
+                    Text("Welcome Back!", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    SizedBox(height: 6),
                     Text("Silakan masuk untuk melanjutkan.", style: TextStyle(fontSize: 14, color: Colors.black54)),
                     SizedBox(height: 40),
                     

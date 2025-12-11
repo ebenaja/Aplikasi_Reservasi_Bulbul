@@ -89,23 +89,32 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Container(
-                          padding: EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white.withOpacity(0.5), width: 1)
+                        Hero(
+                          tag: 'app-logo',
+                          child: Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white.withOpacity(0.5), width: 1)
+                            ),
+                            child: Icon(Icons.beach_access_rounded, color: Colors.white, size: 28),
                           ),
-                          child: Icon(Icons.beach_access_rounded, color: Colors.white, size: 28),
                         ),
                         SizedBox(width: 10),
-                        Text(
-                          "BulbulHolidays",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1
+                        Hero(
+                          tag: 'app-name',
+                          child: Material(
+                            type: MaterialType.transparency,
+                            child: Text(
+                              "BulbulHolidays",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -227,11 +236,16 @@ class _LandingScreenState extends State<LandingScreen> with SingleTickerProvider
 
         var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
 
+        // Combine slide, fade and a subtle scale for a modern feel
+        final curved = CurvedAnimation(parent: animation, curve: curve);
         return SlideTransition(
           position: animation.drive(tween),
           child: FadeTransition(
-            opacity: animation,
-            child: child,
+            opacity: curved,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.98, end: 1.0).animate(curved),
+              child: child,
+            ),
           ),
         );
       },

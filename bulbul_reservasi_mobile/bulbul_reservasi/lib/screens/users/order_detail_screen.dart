@@ -67,7 +67,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               Navigator.pop(context);
               
               showDialog(context: context, barrierDismissible: false, builder: (ctx) => Center(child: CircularProgressIndicator(color: mainColor)));
-              bool success = await _reservasiService.konfirmasiPembayaran(reservasiId, refController.text);
+              bool success = await _reservasiService.konfirmasiManual(reservasiId, refController.text);
               Navigator.pop(context);
 
               if (success) {

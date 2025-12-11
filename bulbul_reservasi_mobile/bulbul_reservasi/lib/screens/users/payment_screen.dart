@@ -45,7 +45,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Future<void> _selectDate(BuildContext context) async {
     final now = DateTime.now();
-    final maxBookingWindow = now.add(const Duration(days: 30));
+    final maxBookingWindow = now.add(const Duration(days: 7));
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,

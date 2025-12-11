@@ -4,7 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class UlasanService {
   // Sesuaikan IP
-  final String baseUrl = 'http://10.0.2.2:8000/api'; 
+  //final String baseUrl = 'http://10.0.2.2:8000/api';
+  final String baseUrl = 'http://172.27.81.234:8000/api';  
 
   // 1. Ambil Ulasan Terbaru (Public)
   Future<List<dynamic>> getRecentUlasan() async {

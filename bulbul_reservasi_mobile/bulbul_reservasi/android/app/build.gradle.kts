@@ -28,6 +28,9 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Tambahan untuk file_picker compatibility
+        multiDexEnabled = true
     }
 
     buildTypes {
