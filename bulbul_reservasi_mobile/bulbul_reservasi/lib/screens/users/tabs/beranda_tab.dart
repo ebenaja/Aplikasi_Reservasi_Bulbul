@@ -2,17 +2,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:bulbul_reservasi/utils/whatsapp_helper.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:animate_do/animate_do.dart'; // Import animasi
-import 'package:bulbul_reservasi/widgets/conditional_animation.dart';
+import 'package:geolocator/geolocator.dart'; // WAJIB ADA DI PUBSPEC
+import 'package:animate_do/animate_do.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+
+// SCREEN & SERVICE IMPORT
 import 'package:bulbul_reservasi/screens/users/user_facilities_screen.dart'; 
 import 'package:bulbul_reservasi/screens/users/payment_screen.dart';
-import 'package:bulbul_reservasi/screens/users/notification_screen.dart'; // Import Notifikasi
+import 'package:bulbul_reservasi/screens/users/notification_screen.dart';
 import 'package:bulbul_reservasi/services/facility_service.dart';
 import 'package:bulbul_reservasi/services/ulasan_service.dart';
 import 'package:bulbul_reservasi/services/local_storage_service.dart';
-import 'package:bulbul_reservasi/services/weather_service.dart';
+import 'package:bulbul_reservasi/services/weather_service.dart'; // PASTIKAN FILE INI ADA
 
 class BerandaTab extends StatefulWidget {
   const BerandaTab({super.key});
@@ -27,17 +28,12 @@ class _BerandaTabState extends State<BerandaTab> {
   final Color secondaryColor = const Color(0xFF2E8B91);
   final Color backgroundColor = const Color(0xFFF5F6FA);
 
-  // --- CONTROLLER & SERVICE ---
+  // --- SERVICE ---
   final TextEditingController _searchController = TextEditingController();
   final FacilityService _facilityService = FacilityService();
   final UlasanService _ulasanService = UlasanService();
   final LocalStorageService _localStorage = LocalStorageService();
-
-  // --- Weather & Time ---
   final WeatherService _weatherService = WeatherService();
-  Map<String, String>? _weather; // { 'temp_c': '28', 'condition': 'Sunny' }
-  Timer? _weatherTimer;
-  bool _useGpsForWeather = false;
 
   // --- STATE DATA ---
   bool _isLoading = true;
@@ -46,29 +42,38 @@ class _BerandaTabState extends State<BerandaTab> {
   List<dynamic> _populars = [];
   List<dynamic> _searchResults = [];
   List<dynamic> _testimonials = [];
-  List<String> _favoriteIds = []; 
+  List<String> _favoriteIds = [];
+  int _currentBannerIndex = 0;
+
+  // --- STATE LOKASI & CUACA ---
+  Map<String, String>? _weather;
+  Timer? _weatherTimer;
+  bool _useGpsForWeather = false;
+
+  // --- DATA BANNER PROMO (CAROUSEL) ---
+  final List<Map<String, dynamic>> _promoBanners = [
+    {"title": "Liburan Seru! 🏖️", "subtitle": "Diskon 20% untuk Pondok VIP.", "colors": [Colors.orangeAccent, Colors.deepOrangeAccent], "icon": Icons.local_fire_department},
+    {"title": "Paket Hemat 👨‍👩‍👧‍👦", "subtitle": "Homestay + Banana Boat murah.", "colors": [Colors.blueAccent, Colors.lightBlue], "icon": Icons.family_restroom},
+    {"title": "Weekend Ceria 🛶", "subtitle": "Gratis 1 jam sewa Kano.", "colors": [Color(0xFF50C2C9), Color(0xFF2E8B91)], "icon": Icons.kayaking},
+  ];
 
   @override
   void initState() {
     super.initState();
     _fetchData();
-    // Start time & periodic weather updates
-    _startTimers();
+    // Start Logic Cuaca
     _loadWeatherPreference();
+    _startTimers();
   }
 
-  Future<void> _loadWeatherPreference() async {
-    try {
-      final useGps = await _localStorage.getUseGpsForWeather();
-      if (!mounted) return;
-      setState(() => _useGpsForWeather = useGps);
-      // fetch weather according to preference
-      await _updateWeather();
-    } catch (e) {
-      // ignore
-    }
+  @override
+  void dispose() {
+    _weatherTimer?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
+  // --- LOGIKA FETCH DATA ---
   void _fetchData() async {
     try {
       final results = await Future.wait([
@@ -82,28 +87,29 @@ class _BerandaTabState extends State<BerandaTab> {
           _allFacilities = results[0];
           _testimonials = results[1];
           _favoriteIds = results[2] as List<String>;
-
-          // Logic Data
           _recommendations = _allFacilities.take(3).toList();
-          if (_allFacilities.length > 3) {
-            _populars = _allFacilities.sublist(3).toList();
-          } else {
-            _populars = _allFacilities;
-          }
+          _populars = _allFacilities.length > 3 ? _allFacilities.sublist(3).toList() : _allFacilities;
           _isLoading = false;
         });
       }
     } catch (e) {
-      print("Error Fetch: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // -------------------------
-  // Weather helpers
-  // -------------------------
+  // --- LOGIKA CUACA & LOKASI (YANG DIKEMBALIKAN) ---
+  Future<void> _loadWeatherPreference() async {
+    try {
+      final useGps = await _localStorage.getUseGpsForWeather(); // Pastikan method ini ada di local_storage_service.dart
+      if (!mounted) return;
+      setState(() => _useGpsForWeather = useGps);
+      await _updateWeather();
+    } catch (e) {
+      _updateWeather();
+    }
+  }
+
   void _startTimers() {
-    // initial weather fetch and periodic update (every 10 minutes)
     _updateWeather();
     _weatherTimer = Timer.periodic(const Duration(minutes: 10), (_) => _updateWeather());
   }
@@ -115,120 +121,80 @@ class _BerandaTabState extends State<BerandaTab> {
       if (pos != null) {
         data = await _weatherService.fetchWeather(lat: pos.latitude, lon: pos.longitude);
       } else {
-        // fallback to IP-based
         data = await _weatherService.fetchWeather();
       }
     } else {
       data = await _weatherService.fetchWeather();
     }
-    if (!mounted) return;
-    setState(() {
-      _weather = data;
-    });
+    if (mounted) setState(() => _weather = data);
   }
 
-  void refreshFavorites() async {
-    final ids = await _localStorage.getFavoriteIds();
-    if (mounted) setState(() => _favoriteIds = ids);
-  }
-
-  @override
-  void dispose() {
-    _weatherTimer?.cancel();
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  // -------------------------
-  // LOKASI & MAP HELPERS
-  // -------------------------
   Future<Position?> _determinePosition() async {
     bool serviceEnabled;
     LocationPermission permission;
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Layanan lokasi tidak aktif. Aktifkan GPS.')));
+      if(mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Aktifkan GPS untuk cuaca akurat')));
       return null;
     }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Izin lokasi ditolak')));
-        return null;
-      }
+      if (permission == LocationPermission.denied) return null;
     }
+    if (permission == LocationPermission.deniedForever) return null;
 
-    if (permission == LocationPermission.deniedForever) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Izin lokasi ditolak permanen. Buka pengaturan aplikasi.')));
-      return null;
-    }
-
-    try {
-      return await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.best);
-    } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal mendapatkan lokasi: $e')));
-      return null;
-    }
-  }
-
-  Future<void> _openMap() async {
-    final pos = await _determinePosition();
-    if (pos == null) return;
-
-    final lat = pos.latitude;
-    final lon = pos.longitude;
-
-    final googleMapsUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lon');
-    if (!await launchUrl(googleMapsUrl, mode: LaunchMode.externalApplication)) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal membuka Google Maps')));
-    }
+    return await Geolocator.getCurrentPosition();
   }
 
   Future<void> _showLocationOptions() async {
-    if (!mounted) return;
     showModalBottomSheet(
       context: context,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) {
         return Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(20.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Opsi Lokasi', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              SizedBox(height: 10),
-              Text('Pilih tindakan untuk lokasi dan cuaca. Mengaktifkan cuaca berbasis GPS akan meminta izin lokasi.'),
-              SizedBox(height: 12),
-              Row(children: [
-                Expanded(child: ElevatedButton.icon(onPressed: () { Navigator.of(ctx).pop(); _openMap(); }, icon: Icon(Icons.map), label: Text('Buka Google Maps'))),
-              ]),
-              SizedBox(height: 10),
+              Text('Pengaturan Lokasi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              SizedBox(height: 15),
               SwitchListTile(
-                title: Text('Gunakan lokasi untuk cuaca'),
+                title: Text('Gunakan GPS untuk Cuaca'),
                 value: _useGpsForWeather,
-                subtitle: Text('Lebih akurat, memerlukan izin lokasi'),
+                subtitle: Text('Memerlukan izin lokasi'),
+                activeColor: mainColor,
                 onChanged: (v) async {
-                  Navigator.of(ctx).pop();
-                  if (v) {
-                    // Request permission first
-                    final pos = await _determinePosition();
-                    if (pos == null) return; // user denied
-                  }
-                  await _localStorage.setUseGpsForWeather(v);
-                  if (!mounted) return;
+                  Navigator.pop(ctx);
+                  // Simpan pref (Pastikan method setUseGpsForWeather ada di service)
+                  // await _localStorage.setUseGpsForWeather(v); 
                   setState(() => _useGpsForWeather = v);
-                  await _updateWeather();
+                  _updateWeather();
                 },
               ),
-              SizedBox(height: 8),
+              ListTile(
+                leading: Icon(Icons.map, color: mainColor),
+                title: Text("Buka Google Maps"),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final url = Uri.parse("https://www.google.com/maps/search/?api=1&query=Pantai+Bulbul");
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                },
+              )
             ],
           ),
         );
       }
     );
+  }
+
+  // --- LOGIKA UMUM LAINNYA ---
+  void refreshFavorites() async {
+    final ids = await _localStorage.getFavoriteIds();
+    if (mounted) setState(() => _favoriteIds = ids);
   }
 
   Future<void> _toggleFavorite(int id) async {
@@ -248,29 +214,22 @@ class _BerandaTabState extends State<BerandaTab> {
     if (enteredKeyword.isEmpty) {
       results = [];
     } else {
-      results = _allFacilities
-          .where((item) => item["nama_fasilitas"].toString().toLowerCase().contains(enteredKeyword.toLowerCase()))
-          .toList();
+      results = _allFacilities.where((item) => item["nama_fasilitas"].toString().toLowerCase().contains(enteredKeyword.toLowerCase())).toList();
     }
     setState(() => _searchResults = results);
   }
 
-  // --- NAVIGASI SMOOTH ---
+  // Navigasi Smooth
   void _navigateToCategory(String categoryName) {
-    Navigator.push(context, _createSmoothRoute(UserFacilitiesScreen(category: categoryName)))
-        .then((_) => refreshFavorites());
+    Navigator.push(context, _createSmoothRoute(UserFacilitiesScreen(category: categoryName))).then((_) => refreshFavorites());
   }
-
   void _navigateToSeeAll() {
-    Navigator.push(context, _createSmoothRoute(UserFacilitiesScreen(category: "Semua")))
-        .then((_) => refreshFavorites());
+    Navigator.push(context, _createSmoothRoute(UserFacilitiesScreen(category: "Semua"))).then((_) => refreshFavorites());
   }
-
-  void _navigateToPayment(int id, String itemName, var price) {
+  void _navigateToPayment(int id, String itemName, var price, String? foto) {
     double priceDouble = double.tryParse(price.toString()) ?? 0.0;
-    Navigator.push(context, _createSmoothRoute(PaymentScreen(fasilitasId: id, itemName: itemName, pricePerUnit: priceDouble)));
+    Navigator.push(context, _createSmoothRoute(PaymentScreen(fasilitasId: id, itemName: itemName, pricePerUnit: priceDouble, fasilitasImage: foto)));
   }
-
   void _navigateToNotification() {
     Navigator.push(context, _createSmoothRoute(NotificationScreen()));
   }
@@ -279,7 +238,7 @@ class _BerandaTabState extends State<BerandaTab> {
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) => page,
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const begin = Offset(1.0, 0.0); // Slide dari kanan
+        const begin = Offset(1.0, 0.0);
         const end = Offset.zero;
         const curve = Curves.easeInOutQuart;
         var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
@@ -290,8 +249,16 @@ class _BerandaTabState extends State<BerandaTab> {
   }
 
   Future<void> _contactAdmin() async {
-    const String phoneNumber = '6282286250726'; // Ganti dengan nomor admin (format internasional tanpa +)
-    await WhatsAppHelper.openWhatsApp(context: context, phone: phoneNumber, message: 'Halo Admin, saya butuh bantuan terkait reservasi.');
+    final Uri url = Uri.parse("https://wa.me/6283492468871");
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Gagal membuka WhatsApp")));
+    }
+  }
+
+  Widget _buildImage(String? path) {
+    if (path == null || path.isEmpty) return Image.asset('assets/images/pantai_landingscreens.jpg', fit: BoxFit.cover);
+    if (path.startsWith('http')) return Image.network(path, fit: BoxFit.cover, errorBuilder: (ctx, err, stack) => Icon(Icons.broken_image, color: Colors.grey));
+    return Image.asset(path, fit: BoxFit.cover, errorBuilder: (ctx, err, stack) => Icon(Icons.image, color: Colors.grey));
   }
 
   @override
@@ -304,24 +271,24 @@ class _BerandaTabState extends State<BerandaTab> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. HEADER MEWAH & SEARCH
+                // 1. HEADER (LOKASI & CUACA SUDAH KEMBALI)
                 _buildHeader(),
                 
-                SizedBox(height: 55), // Jarak kompensasi Search Bar
+                SizedBox(height: 55), 
 
-                // 2. HASIL PENCARIAN (JIKA ADA)
+                // 2. HASIL PENCARIAN
                 if (_searchController.text.isNotEmpty) ...[
                   Padding(padding: EdgeInsets.symmetric(horizontal: 24), child: Text("Hasil Pencarian:", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
                   _searchResults.isEmpty 
                     ? Center(child: Padding(padding: EdgeInsets.all(20), child: Text("Tidak ditemukan", style: TextStyle(color: Colors.grey))))
                     : ListView.builder(
                         shrinkWrap: true, physics: NeverScrollableScrollPhysics(), padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10), itemCount: _searchResults.length,
-                        itemBuilder: (context, index) => ConditionalAnimation(child: Padding(padding: const EdgeInsets.only(bottom: 15), child: _buildCardItem(_searchResults[index], isHorizontal: false))),
+                        itemBuilder: (context, index) => Padding(padding: const EdgeInsets.only(bottom: 15), child: _buildCardItem(_searchResults[index], isHorizontal: false)),
                       ),
                 ] 
                 else ...[
-                  // 3. KATEGORI ANIMASI
-                  ConditionalAnimation(
+                  // 3. KATEGORI
+                  FadeInUp(
                     duration: Duration(milliseconds: 600),
                     child: Padding(
                       padding: EdgeInsets.symmetric(horizontal: 24),
@@ -331,7 +298,7 @@ class _BerandaTabState extends State<BerandaTab> {
                           _buildCategoryBtn("Pondok", Icons.house_siding_rounded, () => _navigateToCategory("Pondok")),
                           _buildCategoryBtn("Tenda", Icons.holiday_village_rounded, () => _navigateToCategory("Tenda")),
                           _buildCategoryBtn("Homestay", Icons.home_rounded, () => _navigateToCategory("Homestay")),
-                          _buildCategoryBtn("Semua", Icons.view_list_rounded, () => _navigateToSeeAll()),
+                          _buildCategoryBtn("Semua", Icons.all_inclusive_outlined, () => _navigateToCategory("Semua")),
                         ],
                       ),
                     ),
@@ -339,102 +306,72 @@ class _BerandaTabState extends State<BerandaTab> {
                   
                   SizedBox(height: 25),
 
-                  // 4. BANNER SPESIAL (Biar gak sepi)
-                  ConditionalAnimation(
+                  // 4. CAROUSEL BANNER (TETAP ADA)
+                  FadeInUp(
                     delay: Duration(milliseconds: 200),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [Colors.orangeAccent, Colors.deepOrangeAccent]),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [BoxShadow(color: Colors.orange.withOpacity(0.3), blurRadius: 10, offset: Offset(0, 5))]
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text("Liburan Seru! 🏖️", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-                                  SizedBox(height: 5),
-                                  Text("Diskon 20% untuk pemesanan Pondok di hari kerja.", style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12)),
-                                ],
+                    child: Column(
+                      children: [
+                        CarouselSlider(
+                          options: CarouselOptions(
+                            height: 140.0, autoPlay: true, autoPlayInterval: Duration(seconds: 4), enlargeCenterPage: true, viewportFraction: 0.85, aspectRatio: 16/9,
+                            onPageChanged: (index, reason) => setState(() => _currentBannerIndex = index),
+                          ),
+                          items: _promoBanners.map((banner) {
+                            return BouncingButton(
+                              onTap: (){}, 
+                              child: Container(
+                                width: MediaQuery.of(context).size.width, margin: EdgeInsets.symmetric(horizontal: 5.0),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(colors: banner['colors'], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [BoxShadow(color: (banner['colors'][0] as Color).withOpacity(0.3), blurRadius: 8, offset: Offset(0, 4))]
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20.0),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+                                            Text(banner['title'], style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)), SizedBox(height: 5),
+                                            Text(banner['subtitle'], style: TextStyle(color: Colors.white.withOpacity(0.95), fontSize: 12), maxLines: 2, overflow: TextOverflow.ellipsis),
+                                        ])),
+                                      Icon(banner['icon'], color: Colors.white.withOpacity(0.9), size: 45),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                            Icon(Icons.discount_outlined, color: Colors.white, size: 40),
-                          ],
+                            );
+                          }).toList(),
                         ),
-                      ),
+                        SizedBox(height: 10),
+                        Row(mainAxisAlignment: MainAxisAlignment.center, children: _promoBanners.asMap().entries.map((entry) {
+                            return Container(width: 8.0, height: 8.0, margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0), decoration: BoxDecoration(shape: BoxShape.circle, color: (Theme.of(context).brightness == Brightness.dark ? Colors.white : mainColor).withOpacity(_currentBannerIndex == entry.key ? 0.9 : 0.2)));
+                        }).toList()),
+                      ],
                     ),
                   ),
 
-                  SizedBox(height: 25),
+                  SizedBox(height: 15),
 
-                  // 5. REKOMENDASI (PROMO)
+                  // 5. REKOMENDASI & POPULER (TETAP ADA)
                   if (_recommendations.isNotEmpty) ...[
-                    ConditionalAnimation(child: _buildSectionTitle("Rekomendasi Pilihan ✨", onSeeAll: _navigateToSeeAll), type: AnimationType.fadeRight),
+                    FadeInRight(child: _buildSectionTitle("Rekomendasi Pilihan ✨", onSeeAll: _navigateToSeeAll)),
                     SizedBox(height: 15),
-                    SizedBox(
-                      height: 270, 
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal, 
-                        padding: EdgeInsets.only(left: 24, right: 10), 
-                        itemCount: _recommendations.length, 
-                        itemBuilder: (context, index) => Padding(
-                          padding: const EdgeInsets.only(right: 16), 
-                          child: ConditionalAnimation(delay: Duration(milliseconds: index * 100), child: _buildCardItem(_recommendations[index], isHorizontal: true), type: AnimationType.fadeRight)
-                        )
-                      )
-                    ),
+                    SizedBox(height: 270, child: ListView.builder(scrollDirection: Axis.horizontal, padding: EdgeInsets.only(left: 24, right: 10), itemCount: _recommendations.length, itemBuilder: (context, index) => Padding(padding: const EdgeInsets.only(right: 16), child: FadeInRight(delay: Duration(milliseconds: index * 100), child: _buildCardItem(_recommendations[index], isHorizontal: true))))),
                     SizedBox(height: 25),
                   ],
-                  
-                  // 6. FASILITAS POPULER
                   if (_populars.isNotEmpty) ...[
-                    ConditionalAnimation(child: _buildSectionTitle("Fasilitas Populer 🔥")),
+                    FadeInUp(child: _buildSectionTitle("Fasilitas Populer 🔥")),
                     SizedBox(height: 15),
-                    ListView.builder(
-                      shrinkWrap: true, 
-                      physics: NeverScrollableScrollPhysics(), 
-                      padding: EdgeInsets.symmetric(horizontal: 24), 
-                      itemCount: _populars.length, 
-                      itemBuilder: (context, index) => Padding(
-                        padding: const EdgeInsets.only(bottom: 15), 
-                        child: ConditionalAnimation(delay: Duration(milliseconds: index * 100), child: _buildCardItem(_populars[index], isHorizontal: false))
-                      )
-                    ),
+                    ListView.builder(shrinkWrap: true, physics: NeverScrollableScrollPhysics(), padding: EdgeInsets.symmetric(horizontal: 24), itemCount: _populars.length, itemBuilder: (context, index) => Padding(padding: const EdgeInsets.only(bottom: 15), child: FadeInUp(delay: Duration(milliseconds: index * 100), child: _buildCardItem(_populars[index], isHorizontal: false)))),
                     SizedBox(height: 25),
                   ],
 
-                  // 7. TESTIMONI
-                  ConditionalAnimation(child: _buildTestimonialSection()),
+                  FadeInUp(child: _buildTestimonialSection()),
                   SizedBox(height: 25),
-
-                  // 8. KONTAK ADMIN (Floating Style)
-                  ConditionalAnimation(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 24), 
-                      child: BouncingButton(
-                        onTap: _contactAdmin,
-                        child: Container(
-                          width: double.infinity, padding: EdgeInsets.all(16), 
-                          decoration: BoxDecoration(color: Color(0xFF2E3E5C), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Color(0xFF2E3E5C).withOpacity(0.4), blurRadius: 10, offset: Offset(0, 5))]), 
-                          child: Row(
-                            children: [
-                              Container(padding: EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white10, shape: BoxShape.circle), child: Icon(Icons.support_agent_rounded, color: Colors.white, size: 28)),
-                              SizedBox(width: 15), 
-                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Butuh Bantuan?", style: TextStyle(color: Colors.white70, fontSize: 12)), Text("Hubungi Admin via WhatsApp", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))])), 
-                              Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16)
-                            ]
-                          )
-                        ),
-                      )
-                    ),
-                  ),
                   
+                  // KONTAK ADMIN
+                  FadeInUp(child: Padding(padding: EdgeInsets.symmetric(horizontal: 24), child: BouncingButton(onTap: _contactAdmin, child: Container(width: double.infinity, padding: EdgeInsets.all(16), decoration: BoxDecoration(color: Color(0xFF2E3E5C), borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Color(0xFF2E3E5C).withOpacity(0.4), blurRadius: 10, offset: Offset(0, 5))]), child: Row(children: [Container(padding: EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.white10, shape: BoxShape.circle), child: Icon(Icons.support_agent_rounded, color: Colors.white, size: 28)), SizedBox(width: 15), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Butuh Bantuan?", style: TextStyle(color: Colors.white70, fontSize: 12)), Text("Hubungi Admin via WhatsApp", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14))])), Icon(Icons.arrow_forward_ios, color: Colors.white54, size: 16)]))))),
                   SizedBox(height: 40),
                 ]
               ],
@@ -457,7 +394,6 @@ class _BerandaTabState extends State<BerandaTab> {
             borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40), bottomRight: Radius.circular(40)),
           ),
         ),
-        // Motif Dekorasi Bulat
         Positioned(top: -50, left: -50, child: CircleAvatar(radius: 100, backgroundColor: Colors.white.withOpacity(0.1))),
         Positioned(top: 50, right: -20, child: CircleAvatar(radius: 60, backgroundColor: Colors.white.withOpacity(0.1))),
         
@@ -477,7 +413,6 @@ class _BerandaTabState extends State<BerandaTab> {
                         Text("BulbulHolidays", style: TextStyle(fontFamily: "Serif", fontSize: 26, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 1)),
                       ],
                     ),
-                    // TOMBOL NOTIFIKASI AKTIF
                     BouncingButton(
                       onTap: _navigateToNotification,
                       child: Container(
@@ -489,61 +424,41 @@ class _BerandaTabState extends State<BerandaTab> {
                   ],
                 ),
                 SizedBox(height: 25),
-                // INFO CUACA & TANGGAL (Simplified)
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Tanggal
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(DateFormat('EEEE').format(DateTime.now()), style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
-                          const SizedBox(height: 2),
-                          Text(DateFormat('d MMMM yyyy').format(DateTime.now()), style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 11)),
-                        ],
-                      ),
-                      const SizedBox(width: 12),
-                      // Pemisah vertikal
-                      Container(width: 1, height: 35, color: Colors.white24),
-                      const SizedBox(width: 12),
-                      // Cuaca + Tombol Lokasi
-                      Expanded(
-                        child: Row(
+                
+                // --- BAGIAN CUACA YANG DIKEMBALIKAN ---
+                GestureDetector(
+                  onTap: _showLocationOptions, // Bisa diklik untuk atur lokasi
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.wb_sunny_rounded, color: Colors.amber, size: 20),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _weather != null ? "${_weather!['temp_c']}°C ${_weather!['condition']}" : "Memuat cuaca...",
-                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Tombol buka opsi lokasi (Maps + pengaturan cuaca GPS)
-                            GestureDetector(
-                              onTap: _showLocationOptions,
-                              child: Container(
-                                padding: EdgeInsets.all(6),
-                                decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(8)),
-                                child: Icon(Icons.location_on, color: Colors.white, size: 16),
-                              ),
-                            ),
+                            Text(DateFormat('EEEE, d MMM yyyy', 'id_ID').format(DateTime.now()), style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
                           ],
                         ),
-                      ),
-                    ],
+                        Container(height: 30, width: 1, color: Colors.white30, margin: EdgeInsets.symmetric(horizontal: 12)),
+                        Icon(Icons.wb_sunny_rounded, color: Colors.amber, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          _weather != null ? "${_weather!['temp_c']}°C" : "...",
+                          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)
+                        ),
+                        SizedBox(width: 4),
+                        Icon(Icons.location_on, color: Colors.white, size: 14),
+                      ],
+                    ),
                   ),
                 )
+                // -------------------------------------
               ],
             ),
           ),
         ),
         
-        // SEARCH BAR
         Positioned(
           bottom: -25, left: 24, right: 24,
           child: Container(
@@ -577,7 +492,7 @@ class _BerandaTabState extends State<BerandaTab> {
           Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.black87)),
           if (onSeeAll != null)
             BouncingButton(
-              onTap: onSeeAll!,
+              onTap: onSeeAll,
               child: Text("Lihat Semua", style: TextStyle(fontSize: 13, color: mainColor, fontWeight: FontWeight.bold)),
             ),
         ],
@@ -612,7 +527,7 @@ class _BerandaTabState extends State<BerandaTab> {
     String ratingText = rating == 0 ? "Baru" : rating.toStringAsFixed(1);
 
     return BouncingButton(
-      onTap: () => _navigateToPayment(id, title, item['harga']),
+      onTap: () => _navigateToPayment(id, title, item['harga'], item['foto']),
       child: Container(
         width: isHorizontal ? 220 : double.infinity,
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: Offset(0, 5))]),
@@ -626,11 +541,7 @@ class _BerandaTabState extends State<BerandaTab> {
                   child: SizedBox(
                     height: isHorizontal ? 140 : 180, 
                     width: double.infinity, 
-                    child: (imgUrl != null && imgUrl.isNotEmpty)
-                      ? (imgUrl.startsWith('http') 
-                          ? Image.network(imgUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => Image.asset('assets/images/pantai_landingscreens.jpg', fit: BoxFit.cover))
-                          : Image.asset(imgUrl, fit: BoxFit.cover, errorBuilder: (_,__,___) => Image.asset('assets/images/pantai_landingscreens.jpg', fit: BoxFit.cover)))
-                      : Image.asset('assets/images/pantai_landingscreens.jpg', fit: BoxFit.cover)
+                    child: _buildImage(imgUrl)
                   )
                 ),
                 Positioned(
@@ -677,7 +588,6 @@ class _BerandaTabState extends State<BerandaTab> {
 
   Widget _buildTestimonialSection() {
     if (_testimonials.isEmpty) return SizedBox.shrink();
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -691,20 +601,22 @@ class _BerandaTabState extends State<BerandaTab> {
             itemCount: _testimonials.length,
             itemBuilder: (context, index) {
               final review = _testimonials[index];
-              return Padding(
-                padding: const EdgeInsets.only(right: 15),
-                child: Container(
-                  width: 280,
-                  padding: EdgeInsets.all(15),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: Offset(0, 5))]),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [CircleAvatar(radius: 14, backgroundColor: Colors.grey[200], child: Icon(Icons.person, size: 16, color: Colors.grey)), SizedBox(width: 10), Expanded(child: Text(review['user']?['nama'] ?? 'Pengunjung', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1)), Row(children: List.generate(5, (i) => Icon(i < (review['rating'] ?? 5) ? Icons.star : Icons.star_border, size: 14, color: Colors.amber)))]),
-                      SizedBox(height: 10),
-                      Expanded(child: Text('"${review['komentar'] ?? ''}"', style: TextStyle(fontSize: 13, color: Colors.grey[700], fontStyle: FontStyle.italic), maxLines: 3, overflow: TextOverflow.ellipsis)),
-                    ],
-                  ),
+              final user = review['user'] != null ? review['user']['nama'] : 'Pengunjung';
+              final text = review['komentar'] ?? '';
+              final stars = review['rating'] ?? 5;
+
+              return Container(
+                width: 280,
+                margin: EdgeInsets.only(right: 16),
+                padding: EdgeInsets.all(15),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.grey.shade100), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: Offset(0, 5))]),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [CircleAvatar(radius: 14, backgroundColor: Colors.grey[200], child: Icon(Icons.person, size: 16, color: Colors.grey)), SizedBox(width: 10), Expanded(child: Text(user, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87), maxLines: 1)), Row(children: List.generate(5, (i) => Icon(i < stars ? Icons.star : Icons.star_border, size: 12, color: Colors.amber)))]),
+                    SizedBox(height: 10),
+                    Expanded(child: Text('"${text}"', style: TextStyle(fontSize: 13, color: Colors.grey[700], fontStyle: FontStyle.italic), maxLines: 3, overflow: TextOverflow.ellipsis)),
+                  ],
                 ),
               );
             },
@@ -715,11 +627,12 @@ class _BerandaTabState extends State<BerandaTab> {
   }
 }
 
-// --- WIDGET TOMBOL MEMBAL (ANIMASI PRESS) ---
+// --- WIDGET TOMBOL MEMBAL ---
 class BouncingButton extends StatefulWidget {
   final Widget child;
   final VoidCallback onTap;
   const BouncingButton({required this.child, required this.onTap});
+
   @override
   _BouncingButtonState createState() => _BouncingButtonState();
 }
@@ -731,7 +644,7 @@ class _BouncingButtonState extends State<BouncingButton> with SingleTickerProvid
   @override
   void initState() {
     _controller = AnimationController(vsync: this, duration: Duration(milliseconds: 100));
-    _scale = Tween<double>(begin: 1.0, end: 0.95).animate(_controller);
+    _scale = Tween<double>(begin: 1.0, end: 0.95).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
     super.initState();
   }
 
@@ -745,8 +658,5 @@ class _BouncingButtonState extends State<BouncingButton> with SingleTickerProvid
     );
   }
   @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  void dispose() { _controller.dispose(); super.dispose(); }
 }

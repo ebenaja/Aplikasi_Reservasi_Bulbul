@@ -10,7 +10,7 @@ class ReservasiService {
   // Gunakan IP Laptop (misal 192.168.1.10) jika pakai HP Fisik
   // ------------------------------------------------------------------------
   final String baseUrl = 'http://10.0.2.2:8000/api';
-  //final String baseUrl = 'http://172.27.81.234:8000/api';
+  //final String baseUrl = 'http://172.27.81.210:8000/api';
 
   // ========================================================================
   // 1. BUAT RESERVASI

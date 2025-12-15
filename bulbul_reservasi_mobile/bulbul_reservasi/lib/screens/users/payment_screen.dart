@@ -9,6 +9,7 @@ class PaymentScreen extends StatefulWidget {
   final String itemName;
   final double pricePerUnit;
   final String? imageUrl;
+  final String? fasilitasImage; // Gambar fasilitas (opsional)
 
   const PaymentScreen({
     super.key,
@@ -16,6 +17,7 @@ class PaymentScreen extends StatefulWidget {
     required this.itemName,
     required this.pricePerUnit,
     this.imageUrl,
+    this.fasilitasImage,
   });
 
   @override
@@ -53,12 +55,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
       lastDate: maxBookingWindow,
       builder: (context, child) {
         return Theme(
-          data: Theme.of(context).copyWith(colorScheme: ColorScheme.light(primary: mainColor)),
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(primary: mainColor, onPrimary: Colors.white, onSurface: Colors.black),
+          ),
           child: child!,
         );
       },
     );
-    if (picked != null) setState(() => _selectedDate = picked);
+    if (picked != null && picked != _selectedDate) {
+      setState(() => _selectedDate = picked);
+    }
   }
 
   Future<void> _selectTime(BuildContext context) async {
@@ -75,12 +81,48 @@ class _PaymentScreenState extends State<PaymentScreen> {
     if (picked != null) setState(() => _selectedTime = picked);
   }
 
-  Widget _buildHeaderImage() {
-    final img = widget.imageUrl ?? "";
-    if (img.isEmpty) return Image.asset('assets/images/pantai_landingscreens.jpg', fit: BoxFit.cover);
-    if (img.startsWith("http")) return Image.network(img, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.broken_image, size: 60));
-    return Image.asset(img, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.image_not_supported));
+Widget _buildHeaderImage() {
+  final String img = widget.fasilitasImage?.trim() ?? "";
+
+  // DEBUG (boleh hapus kalau sudah aman)
+  debugPrint("PAYMENT IMAGE PATH: $img");
+
+  // 1. Kosong → default
+  if (img.isEmpty) {
+    return Image.asset(
+      'assets/images/pantai_landingscreens.jpg',
+      fit: BoxFit.cover,
+    );
   }
+
+  // 2. URL dari backend
+  if (img.startsWith('http')) {
+    return Image.network(
+      img,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) =>
+          const Icon(Icons.broken_image, size: 60),
+    );
+  }
+
+  // 3. Asset lokal
+  if (img.startsWith('assets/')) {
+    return Image.asset(
+      img,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) =>
+          const Icon(Icons.image_not_supported, size: 60),
+    );
+  }
+
+  // 4. Nama file dari DB → storage Laravel
+  return Image.network(
+    'http://10.0.2.2:8000/storage/$img',
+    fit: BoxFit.cover,
+    errorBuilder: (_, __, ___) =>
+        const Icon(Icons.broken_image, size: 60),
+  );
+}
 
   // --- LOGIKA PEMBAYARAN DIPERBAIKI ---
   void _processPayment() async {

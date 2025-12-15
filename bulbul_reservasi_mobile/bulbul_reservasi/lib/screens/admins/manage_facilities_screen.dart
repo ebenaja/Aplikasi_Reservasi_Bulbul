@@ -19,6 +19,22 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
   List<dynamic> _facilities = [];
   bool _isLoading = true;
 
+  // DAFTAR ASET GAMBAR (SESUAI PUBSPEC.YAML)
+  final List<String> _assetOptions = [
+    'assets/images/pantai_landingscreens.jpg',
+    'assets/images/Pondok1.jpg',
+    'assets/images/Pondok2.jpg',
+    'assets/images/pondok3.jpg',
+    'assets/images/Tenda1.jpg',
+    'assets/images/Tenda2.jpg',
+    'assets/images/Tenda3.jpg',
+    'assets/images/homestay.jpeg',
+    'assets/images/Homestay1.jpg',
+    'assets/images/Homestay2.jpg',
+    'assets/images/Homestay3.jpg',
+    'assets/images/banana_boat.jpg',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -35,7 +51,48 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
     }
   }
 
-  // --- HELPER STYLE INPUT ---
+  // --- HELPER GAMBAR YANG DIPERBAIKI ---
+  Widget _buildImageDisplay(String? path) {
+    if (path == null || path.isEmpty) {
+      return Container(
+        color: Colors.grey[200], 
+        child: Icon(Icons.image, color: Colors.grey, size: 50)
+      );
+    }
+    
+    // Hapus spasi yang mungkin terbawa
+    String cleanPath = path.trim();
+
+    // Cek apakah URL Internet
+    if (cleanPath.startsWith('http')) {
+      return Image.network(
+        cleanPath, 
+        fit: BoxFit.cover, 
+        errorBuilder: (_,__,___) => Icon(Icons.broken_image, color: Colors.grey)
+      );
+    }
+
+    // Jika Aset Lokal
+    return Image.asset(
+      cleanPath, 
+      fit: BoxFit.cover, 
+      errorBuilder: (context, error, stackTrace) {
+        print("Gagal Load Aset: $cleanPath | Error: $error");
+        return Container(
+          color: Colors.grey[200],
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.broken_image, color: Colors.red),
+              Text("File Salah", style: TextStyle(fontSize: 10, color: Colors.red))
+            ],
+          ),
+        );
+      }
+    );
+  }
+
+  // --- STYLE INPUT ---
   InputDecoration _cleanInputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
@@ -49,26 +106,21 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
     );
   }
 
-  Widget _buildImageDisplay(String? path) {
-    if (path == null || path.isEmpty) {
-      return Container(color: Colors.grey[200], child: Icon(Icons.image, color: Colors.grey, size: 50));
-    }
-    if (path.startsWith('http')) {
-      return Image.network(path, fit: BoxFit.cover, errorBuilder: (_,__,___)=> Icon(Icons.broken_image, color: Colors.grey));
-    }
-    return Image.asset(path, fit: BoxFit.cover, errorBuilder: (_,__,___) => Image.asset('assets/images/pantai_landingscreens.jpg', fit: BoxFit.cover));
-  }
-
-  // --- DIALOG FORM ---
+  // --- DIALOG FORM (DENGAN DROPDOWN) ---
   void _showFormDialog({Map<String, dynamic>? item}) {
     final namaCtrl = TextEditingController(text: item?['nama_fasilitas'] ?? '');
     final deskripsiCtrl = TextEditingController(text: item?['deskripsi'] ?? '');
     final hargaCtrl = TextEditingController(text: item?['harga']?.toString() ?? '');
     final stokCtrl = TextEditingController(text: item?['stok']?.toString() ?? '1');
     final statusCtrl = TextEditingController(text: item?['status'] ?? 'tersedia');
-    final fotoCtrl = TextEditingController(text: item?['foto'] ?? '');
     
-    bool isPromo = (item?['is_promo'] == 1 || item?['is_promo'] == true);
+    // Validasi nilai awal dropdown (harus ada di list opsi)
+    String? selectedPhoto = item?['foto'];
+    if (!_assetOptions.contains(selectedPhoto)) {
+      selectedPhoto = null; 
+    }
+
+    bool isPromo = (item?['is_promo'] == 1 || item?['is_promo'] == true || item?['is_promo'] == '1');
 
     showDialog(
       context: context,
@@ -79,56 +131,102 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
               title: Row(
                 children: [
-                  Container(padding: EdgeInsets.all(8), decoration: BoxDecoration(color: mainColor.withOpacity(0.1), shape: BoxShape.circle), child: Icon(item == null ? Icons.add : Icons.edit, color: mainColor)),
+                  Container(
+                    padding: EdgeInsets.all(8), 
+                    decoration: BoxDecoration(color: mainColor.withOpacity(0.1), shape: BoxShape.circle), 
+                    child: Icon(item == null ? Icons.add : Icons.edit, color: mainColor)
+                  ),
                   SizedBox(width: 10),
-                  Text(item == null ? "Tambah Fasilitas" : "Edit Fasilitas", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  // Gunakan Flexible agar teks judul tidak overflow
+                  Flexible(
+                    child: Text(
+                      item == null ? "Tambah Fasilitas" : "Edit Fasilitas", 
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                      overflow: TextOverflow.ellipsis,
+                    )
+                  ),
                 ],
               ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(height: 10),
-                    TextField(controller: namaCtrl, decoration: _cleanInputDecoration("Nama Fasilitas", Icons.label_outline)),
-                    SizedBox(height: 15),
-                    TextField(controller: deskripsiCtrl, decoration: _cleanInputDecoration("Deskripsi", Icons.description_outlined), maxLines: 2),
-                    SizedBox(height: 15),
-                    TextField(controller: hargaCtrl, decoration: _cleanInputDecoration("Harga (Rp)", Icons.monetization_on_outlined), keyboardType: TextInputType.number),
-                    SizedBox(height: 15),
-                    Row(
-                      children: [
-                        Expanded(child: TextField(controller: stokCtrl, decoration: _cleanInputDecoration("Stok", Icons.inventory_2_outlined), keyboardType: TextInputType.number)),
-                        SizedBox(width: 10),
-                        Expanded(child: TextField(controller: statusCtrl, decoration: _cleanInputDecoration("Status", Icons.info_outline))),
-                      ],
-                    ),
-                    SizedBox(height: 15),
-                    TextField(controller: fotoCtrl, decoration: _cleanInputDecoration("Path Foto", Icons.image_outlined)),
-                    
-                    SizedBox(height: 20),
-                    
-                    // --- SWITCH PROMO CARD ---
-                    Container(
-                      padding: EdgeInsets.symmetric(vertical: 5),
-                      decoration: BoxDecoration(
-                        color: isPromo ? Colors.orange[50] : Colors.grey[50],
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: isPromo ? Colors.orange : Colors.grey[300]!)
+              content: SizedBox( // Berikan batasan lebar pada konten dialog
+                width: double.maxFinite,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(height: 10),
+                      TextField(controller: namaCtrl, decoration: _cleanInputDecoration("Nama Fasilitas", Icons.label_outline)),
+                      SizedBox(height: 15),
+                      TextField(controller: deskripsiCtrl, decoration: _cleanInputDecoration("Deskripsi", Icons.description_outlined), maxLines: 2),
+                      SizedBox(height: 15),
+                      TextField(controller: hargaCtrl, decoration: _cleanInputDecoration("Harga (Rp)", Icons.monetization_on_outlined), keyboardType: TextInputType.number),
+                      SizedBox(height: 15),
+                      Row(
+                        children: [
+                          Expanded(child: TextField(controller: stokCtrl, decoration: _cleanInputDecoration("Stok", Icons.inventory_2_outlined), keyboardType: TextInputType.number)),
+                          SizedBox(width: 10),
+                          Expanded(child: TextField(controller: statusCtrl, decoration: _cleanInputDecoration("Status", Icons.info_outline))),
+                        ],
                       ),
-                      child: SwitchListTile(
-                        title: Text("Promo Akhir Pekan?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isPromo ? Colors.orange[800] : Colors.black87)),
-                        subtitle: Text("Tampilkan di slider halaman depan.", style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-                        value: isPromo,
-                        activeThumbColor: Colors.orange,
-                        secondary: Icon(Icons.local_fire_department_rounded, color: isPromo ? Colors.orange : Colors.grey),
+                      SizedBox(height: 15),
+                      
+                      // --- DROPDOWN (DIPERBAIKI) ---
+                      DropdownButtonFormField<String>(
+                        decoration: _cleanInputDecoration("Pilih Foto", Icons.image_outlined),
+                        value: selectedPhoto,
+                        isExpanded: true, // Aman karena sudah dibungkus SizedBox width: double.maxFinite
+                        hint: Text("Pilih Gambar dari Aset", style: TextStyle(fontSize: 14)),
+                        items: _assetOptions.map((String path) {
+                          String fileName = path.split('/').last;
+                          return DropdownMenuItem<String>(
+                            value: path,
+                            child: Text(
+                              fileName, 
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 14),
+                            ),
+                          );
+                        }).toList(),
                         onChanged: (val) {
                           setStateDialog(() {
-                            isPromo = val;
+                            selectedPhoto = val;
                           });
                         },
                       ),
-                    )
-                  ],
+                      
+                      if (selectedPhoto != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 10.0),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.asset(selectedPhoto!, height: 100, width: double.infinity, fit: BoxFit.cover),
+                          ),
+                        ),
+                      
+                      SizedBox(height: 20),
+                      
+                      // SWITCH PROMO
+                      Container(
+                        padding: EdgeInsets.symmetric(vertical: 5),
+                        decoration: BoxDecoration(
+                          color: isPromo ? Colors.orange[50] : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: isPromo ? Colors.orange : Colors.grey[300]!)
+                        ),
+                        child: SwitchListTile(
+                          title: Text("Promo Akhir Pekan?", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: isPromo ? Colors.orange[800] : Colors.black87)),
+                          subtitle: Text("Tampilkan di slider halaman depan.", style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                          value: isPromo,
+                          activeColor: Colors.orange,
+                          secondary: Icon(Icons.local_fire_department_rounded, color: isPromo ? Colors.orange : Colors.grey),
+                          onChanged: (val) {
+                            setStateDialog(() {
+                              isPromo = val;
+                            });
+                          },
+                        ),
+                      )
+                    ],
+                  ),
                 ),
               ),
               actionsPadding: EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -156,13 +254,18 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
                         ),
                         onPressed: () async {
+                          if (selectedPhoto == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Mohon pilih foto!")));
+                            return;
+                          }
+
                           Map<String, dynamic> data = {
                             'nama_fasilitas': namaCtrl.text,
                             'deskripsi': deskripsiCtrl.text,
                             'harga': hargaCtrl.text,
                             'stok': stokCtrl.text,
                             'status': statusCtrl.text,
-                            'foto': fotoCtrl.text,
+                            'foto': selectedPhoto, 
                             'is_promo': isPromo ? 1 : 0,
                           };
 
@@ -224,7 +327,6 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgPage,
-      // HEADER GRADIENT
       appBar: AppBar(
         title: Text("Kelola Fasilitas", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         flexibleSpace: Container(
@@ -239,7 +341,6 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
         elevation: 0,
         centerTitle: true,
       ),
-      // FAB MODERN
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: mainColor,
         icon: Icon(Icons.add_rounded, color: Colors.white),
@@ -250,63 +351,43 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: mainColor))
           : _facilities.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 100),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 90,
-                          height: 90,
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.inventory_2_outlined, size: 45, color: Colors.blue[300]),
-                        ),
-                        SizedBox(height: 20),
-                        Text("Belum Ada Fasilitas", style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 8),
-                        Text("Tambahkan fasilitas baru untuk memulai", style: TextStyle(color: Colors.grey[500], fontSize: 13)),
-                      ],
-                    ),
-                  ),
-                )
+              ? Center(child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.inventory_2_outlined, size: 80, color: Colors.grey[300]),
+                    SizedBox(height: 15),
+                    Text("Belum ada data fasilitas", style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+                  ],
+                ))
               : ListView.builder(
-                  padding: EdgeInsets.fromLTRB(16, 16, 16, 100),
+                  padding: EdgeInsets.fromLTRB(16, 20, 16, 80), 
                   itemCount: _facilities.length,
                   itemBuilder: (context, index) => _buildAdminCard(_facilities[index]),
                 ),
     );
   }
 
-  // --- CARD ADMIN YANG KEREN ---
   Widget _buildAdminCard(Map<String, dynamic> item) {
-    bool isPromo = (item['is_promo'] == 1 || item['is_promo'] == true);
+    bool isPromo = (item['is_promo'] == 1 || item['is_promo'] == true || item['is_promo'] == '1');
     bool isAvailable = (item['status'] == 'tersedia');
 
     return Container(
-      margin: EdgeInsets.only(bottom: 18),
+      margin: EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 12, offset: Offset(0, 4))],
-        // Border oranye tebal jika promo
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: Offset(0, 4))],
         border: isPromo ? Border.all(color: Colors.orange, width: 2) : Border.all(color: Colors.transparent),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // BAGIAN GAMBAR
           Stack(
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                child: SizedBox(height: 160, width: double.infinity, child: _buildImageDisplay(item['foto'])),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+                child: SizedBox(height: 150, width: double.infinity, child: _buildImageDisplay(item['foto'])),
               ),
-              
-              // Gradient Overlay untuk teks di atas gambar
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
@@ -318,8 +399,6 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
                   ),
                 ),
               ),
-
-              // BADGES (Kanan Atas)
               Positioned(
                 top: 10, right: 10,
                 child: Row(
@@ -349,8 +428,6 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
                   ],
                 ),
               ),
-
-              // STOK (Kiri Atas)
               Positioned(
                 top: 10, left: 10,
                 child: Container(
@@ -361,8 +438,6 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
               ),
             ],
           ),
-          
-          // BAGIAN KONTEN
           Padding(
             padding: EdgeInsets.all(16),
             child: Column(
@@ -372,50 +447,31 @@ class _ManageFacilitiesScreenState extends State<ManageFacilitiesScreen> {
                 SizedBox(height: 5),
                 Text("Rp ${item['harga']}", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: mainColor)),
                 SizedBox(height: 8),
-                Text(
-                  item['deskripsi'] ?? '-', 
-                  style: TextStyle(color: Colors.grey[600], fontSize: 13, height: 1.3),
-                  maxLines: 2, 
-                  overflow: TextOverflow.ellipsis
-                ),
+                Text(item['deskripsi'] ?? '-', style: TextStyle(color: Colors.grey[600], fontSize: 13, height: 1.3), maxLines: 2, overflow: TextOverflow.ellipsis),
                 SizedBox(height: 15),
                 Divider(height: 1, color: Colors.grey[200]),
                 SizedBox(height: 15),
-                
-                // TOMBOL AKSI (Full Width Row)
                 Row(
                   children: [
-                    // Tombol Edit
                     Expanded(
                       child: SizedBox(
                         height: 40,
                         child: ElevatedButton.icon(
                           icon: Icon(Icons.edit_rounded, size: 16),
                           label: Text("Edit"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue[50],
-                            foregroundColor: Colors.blue[700],
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
-                          ),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[50], foregroundColor: Colors.blue[700], elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                           onPressed: () => _showFormDialog(item: item),
                         ),
                       ),
                     ),
                     SizedBox(width: 10),
-                    // Tombol Hapus
                     Expanded(
                       child: SizedBox(
                         height: 40,
                         child: ElevatedButton.icon(
                           icon: Icon(Icons.delete_rounded, size: 16),
                           label: Text("Hapus"),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red[50],
-                            foregroundColor: Colors.red[700],
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))
-                          ),
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.red[50], foregroundColor: Colors.red[700], elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                           onPressed: () => _deleteItem(item['id']),
                         ),
                       ),

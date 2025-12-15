@@ -387,10 +387,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   ],
                 ),
               ),
-
-              const SizedBox(height: 32),
-              Text("Bulbul Admin Panel v1.0", style: TextStyle(color: Colors.grey[400], fontSize: 11, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 24),
             ],
           ),
         ),

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-// IMPORT FILE TAB YANG BARU DIBUAT
 import 'package:bulbul_reservasi/screens/users/tabs/beranda_tab.dart';
-import 'package:bulbul_reservasi/screens/users/tabs/favorite_tab.dart'; // Pastikan file ini ada class FavoriteTab-nya
+import 'package:bulbul_reservasi/screens/users/tabs/favorite_tab.dart';
 import 'package:bulbul_reservasi/screens/users/tabs/pemesanan_tab.dart';
 import 'package:bulbul_reservasi/screens/users/tabs/profile_tab.dart';
 
@@ -23,49 +22,103 @@ class _HomeScreenState extends State<HomeScreen> {
     _currentIndex = widget.initialIndex; 
   }
 
-  // List Halaman
   final List<Widget> _pages = [
-    const BerandaTab(),      // Index 0
-    const FavoriteTab(),     // Index 1
-    const PemesananTab(),    // Index 2
-    const ProfileTab(),      // Index 3
+    const BerandaTab(),
+    const FavoriteTab(),
+    const PemesananTab(),
+    const ProfileTab(),
+  ];
+
+  // Data untuk Navigasi
+  final List<Map<String, dynamic>> _navItems = [
+    {"icon": Icons.home_rounded, "label": "Beranda"},
+    {"icon": Icons.favorite_rounded, "label": "Favorit"},
+    {"icon": Icons.calendar_month_rounded, "label": "Pesanan"},
+    {"icon": Icons.person_rounded, "label": "Akun"},
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F3),
+      
+      // Body dengan transisi Fade yang halus
       body: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 500),
+        duration: const Duration(milliseconds: 400),
         switchInCurve: Curves.easeOut,
         switchOutCurve: Curves.easeIn,
-        transitionBuilder: (Widget child, Animation<double> animation) {
-          return FadeTransition(opacity: animation, child: child);
-        },
-        child: KeyedSubtree(
-          key: ValueKey<int>(_currentIndex),
-          child: _pages[_currentIndex],
+        child: _pages[_currentIndex],
+      ),
+
+      // --- CUSTOM ANIMATED BOTTOM BAR ---
+      bottomNavigationBar: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, -5))
+          ],
+        ),
+        child: SafeArea(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(_navItems.length, (index) {
+              return _buildAnimatedNavItem(index);
+            }),
+          ),
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(color: Colors.white, borderRadius: const BorderRadius.vertical(top: Radius.circular(30)), boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, spreadRadius: 2)]),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-          child: BottomNavigationBar(
-            backgroundColor: Colors.white,
-            currentIndex: _currentIndex,
-            onTap: (index) => setState(() => _currentIndex = index),
-            type: BottomNavigationBarType.fixed,
-            selectedItemColor: mainColor,
-            unselectedItemColor: Colors.grey,
-            showUnselectedLabels: true,
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: "Beranda"),
-              BottomNavigationBarItem(icon: Icon(Icons.favorite_border), activeIcon: Icon(Icons.favorite), label: "Favorit"),
-              BottomNavigationBarItem(icon: Icon(Icons.assignment_outlined), activeIcon: Icon(Icons.assignment), label: "Pemesanan"),
-              BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: "Akun"),
-            ],
-          ),
+    );
+  }
+
+  Widget _buildAnimatedNavItem(int index) {
+    bool isSelected = _currentIndex == index;
+
+    return GestureDetector(
+      onTap: () => setState(() => _currentIndex = index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        padding: EdgeInsets.symmetric(horizontal: isSelected ? 16 : 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? mainColor.withOpacity(0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Row(
+          children: [
+            // Ikon dengan animasi rotasi sedikit/warna
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              child: Icon(
+                _navItems[index]['icon'],
+                color: isSelected ? mainColor : Colors.grey[400],
+                size: 26,
+              ),
+            ),
+            
+            // Teks Label (Muncul hanya jika dipilih)
+            AnimatedSize(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: SizedBox(
+                width: isSelected ? null : 0, // Lebar 0 jika tidak dipilih
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Text(
+                    _navItems[index]['label'],
+                    style: TextStyle(
+                      color: mainColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.clip,
+                  ),
+                ),
+              ),
+            )
+          ],
         ),
       ),
     );

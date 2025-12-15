@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
 
             // Relasi ke User (Nullable: Bisa null jika broadcast promo ke semua)
-            $table->foreignId('user_id')
+            $tabled4d->foreignId('user_id')
                 ->nullable()
                 ->constrained('users')
                 ->cascadeOnDelete();

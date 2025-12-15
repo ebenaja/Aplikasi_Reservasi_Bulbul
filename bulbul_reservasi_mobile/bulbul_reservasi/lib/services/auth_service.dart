@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class AuthService {
   // Ganti 10.0.2.2 dengan IP Laptop jika pakai HP Fisik
   final String baseUrl = 'http://10.0.2.2:8000/api'; 
-  //final String baseUrl = 'http://172.27.81.234:8000/api'; 
+  //final String baseUrl = 'http://172.27.81.210:8000/api'; 
 
   // ==========================================================================
   // 1. LOGIN

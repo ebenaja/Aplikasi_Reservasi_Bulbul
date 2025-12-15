@@ -378,10 +378,6 @@ class _ProfileTabState extends State<ProfileTab> {
                           ),
                         ),
                       ),
-                      
-                      SizedBox(height: 30),
-                      Center(child: Text("Bulbul Holidays v1.0.0", style: TextStyle(color: Colors.grey[400], fontSize: 12))),
-                      SizedBox(height: 20),
                     ],
                   ),
                 ),

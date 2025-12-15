@@ -7,6 +7,9 @@ import 'package:bulbul_reservasi/services/reservasi_service.dart';
 import 'package:bulbul_reservasi/screens/users/add_review_dialog.dart';
 import 'package:bulbul_reservasi/screens/users/payment_success_screen.dart'; 
 import 'package:bulbul_reservasi/utils/image_picker_helper.dart';
+import 'package:image_picker/image_picker.dart';
+
+
 
 // import 'package:bulbul_reservasi/screens/users/order_detail_screen.dart'; // Uncomment jika sudah ada
 // import 'package:bulbul_reservasi/screens/users/payment_instruction_screen.dart'; // Uncomment jika sudah ada
@@ -91,24 +94,50 @@ class _PemesananTabState extends State<PemesananTab> {
     } catch (e) { return dateStr; }
   }
 
-  // --- LOGIKA UPLOAD GAMBAR ---
-  void _uploadBuktiGambar(int reservasiId) async {
-    // Tampilkan dialog pilihan sumber gambar
-    File? imageFile = await ImagePickerHelper.pickImageWithOptions(context);
-    
-    if (imageFile != null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Mengupload bukti...")));
-      bool success = await _reservasiService.uploadBukti(reservasiId, imageFile);
-      if (mounted) {
-        if (success) {
-          _fetchHistory();
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Berhasil! Menunggu Verifikasi."), backgroundColor: Colors.green));
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Gagal Upload."), backgroundColor: Colors.red));
-        }
+
+// --- LOGIKA UPLOAD GAMBAR ---
+void _uploadBuktiGambar(int reservasiId) async {
+  final ImagePicker picker = ImagePicker();
+
+  final XFile? pickedFile = await picker.pickImage(
+    source: ImageSource.gallery,
+    imageQuality: 30, // ✔ kompres
+    maxWidth: 800,    // ✔ batasi ukuran
+    maxHeight: 800,
+  );
+
+  if (pickedFile != null) {
+    File imageFile = File(pickedFile.path);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Mengupload bukti...")),
+    );
+
+    bool success =
+        await _reservasiService.uploadBukti(reservasiId, imageFile);
+
+    if (mounted) {
+      if (success) {
+        _fetchHistory();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Berhasil! Menunggu Verifikasi."),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Gagal Upload."),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
+}
+
+
 
   // --- LOGIKA INPUT REFERENSI (YANG HILANG TADI) ---
   void _inputNomorReferensi(int reservasiId) {

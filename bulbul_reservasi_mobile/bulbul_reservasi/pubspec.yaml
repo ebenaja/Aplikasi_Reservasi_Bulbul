@@ -10,6 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # --- UI & Layout ---
+  carousel_slider: ^5.0.0
 
   # --- UI & Icons ---
   cupertino_icons: ^1.0.8
@@ -43,8 +45,13 @@ flutter:
     # Pastikan file-file ini BENAR-BENAR ADA di folder laptop Anda
     # Perhatikan ekstensi file (.jpg vs .jpeg)
     - assets/images/pantai_landingscreens.jpg
-    - assets/images/pondok.jpg
-    - assets/images/banana_boat.jpg
-    - assets/images/pondok_bulbul.jpg
-    - assets/images/tenda.jpeg
+    - assets/images/Pondok1.jpg
+    - assets/images/Pondok2.jpg
+    - assets/images/pondok3.jpg
+    - assets/images/Tenda1.jpg
+    - assets/images/Tenda2.jpg
+    - assets/images/Tenda3.jpg
     - assets/images/homestay.jpeg
+    - assets/images/Homestay1.jpg
+    - assets/images/Homestay2.jpg
+    - assets/images/Homestay3.jpg
