@@ -1,18 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:animate_do/animate_do.dart'; // Pastikan animate_do ada di pubspec.yaml
+import 'package:animate_do/animate_do.dart';
+
 import 'package:bulbul_reservasi/services/reservasi_service.dart';
 import 'package:bulbul_reservasi/screens/users/add_review_dialog.dart';
-import 'package:bulbul_reservasi/screens/users/payment_success_screen.dart'; 
+import 'package:bulbul_reservasi/screens/users/payment_success_screen.dart';
 import 'package:bulbul_reservasi/utils/image_picker_helper.dart';
-import 'package:image_picker/image_picker.dart';
-
-
-
-// import 'package:bulbul_reservasi/screens/users/order_detail_screen.dart'; // Uncomment jika sudah ada
-// import 'package:bulbul_reservasi/screens/users/payment_instruction_screen.dart'; // Uncomment jika sudah ada
 
 class PemesananTab extends StatefulWidget {
   const PemesananTab({super.key});
@@ -97,45 +91,47 @@ class _PemesananTabState extends State<PemesananTab> {
 
 // --- LOGIKA UPLOAD GAMBAR ---
 void _uploadBuktiGambar(int reservasiId) async {
-  final ImagePicker picker = ImagePicker();
+  final File? imageFile =
+      await ImagePickerHelper.pickImageWithOptions(context);
 
-  final XFile? pickedFile = await picker.pickImage(
-    source: ImageSource.gallery,
-    imageQuality: 30, // ✔ kompres
-    maxWidth: 800,    // ✔ batasi ukuran
-    maxHeight: 800,
+  if (imageFile == null) return;
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text("Mengupload bukti...")),
   );
 
-  if (pickedFile != null) {
-    File imageFile = File(pickedFile.path);
+  final bool success =
+      await _reservasiService.uploadBukti(reservasiId, imageFile);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Mengupload bukti...")),
+  if (!mounted) return;
+
+  if (success) {
+    _fetchHistory();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PaymentSuccessScreen(),
+      ),
     );
 
-    bool success =
-        await _reservasiService.uploadBukti(reservasiId, imageFile);
-
-    if (mounted) {
-      if (success) {
-        _fetchHistory();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Berhasil! Menunggu Verifikasi."),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Gagal Upload."),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Berhasil! Menunggu Verifikasi."),
+        backgroundColor: Colors.green,
+      ),
+    );
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Gagal Upload."),
+        backgroundColor: Colors.red,
+      ),
+    );
   }
 }
+
+
 
 
 

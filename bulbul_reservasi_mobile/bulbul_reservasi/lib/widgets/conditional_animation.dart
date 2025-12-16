@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:animate_do/animate_do.dart';
 
-/// Shows [child] with [FadeInUp]/[FadeInRight] animation when keyboard is NOT visible.
-/// If keyboard is visible (user typing), it returns the child directly to avoid jank.
+/// Shows [child] with animation when keyboard is NOT visible.
+/// If keyboard is visible, returns child directly to avoid jank.
 class ConditionalAnimation extends StatelessWidget {
   final Widget child;
   final Duration? delay;
   final Duration? duration;
   final AnimationType type;
 
-  const ConditionalAnimation({Key? key, required this.child, this.delay, this.duration, this.type = AnimationType.fadeUp}) : super(key: key);
+  const ConditionalAnimation({
+    Key? key,
+    required this.child,
+    this.delay,
+    this.duration,
+    this.type = AnimationType.fadeUp,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -18,10 +24,18 @@ class ConditionalAnimation extends StatelessWidget {
 
     switch (type) {
       case AnimationType.fadeRight:
-        return FadeInRight(child: child, delay: delay ?? Duration.zero, duration: duration ?? const Duration(milliseconds: 600));
+        return FadeInRight(
+          child: child,
+          delay: delay ?? Duration.zero,
+          duration: duration ?? const Duration(milliseconds: 600),
+        );
+
       case AnimationType.fadeUp:
-      default:
-        return FadeInUp(child: child, delay: delay ?? Duration.zero, duration: duration ?? const Duration(milliseconds: 600));
+        return FadeInUp(
+          child: child,
+          delay: delay ?? Duration.zero,
+          duration: duration ?? const Duration(milliseconds: 600),
+        );
     }
   }
 }

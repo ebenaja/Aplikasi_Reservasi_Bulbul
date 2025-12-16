@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 // 1. WAJIB IMPORT INI UNTUK FORMAT TANGGAL INDONESIA
 import 'package:intl/date_symbol_data_local.dart'; 
 
-// Import screen Anda (sesuaikan jika path berubah, tapi ini sesuai kode Anda)
-import 'package:bulbul_reservasi/screens/users/landing_screen.dart'; 
+// Import screen Anda (sesuaikan jika path berubah, tapi ini sesuai kode Anda) 
 import 'package:bulbul_reservasi/screens/users/splash_screen.dart';
 
 void main() async {
@@ -31,7 +30,7 @@ class _MyAppState extends State<MyApp> {
     super.didChangeDependencies();
     
     // Precache gambar agar tidak berkedip saat loading
-    precacheImage(const AssetImage("assets/images/pantai_landingscreens.jpg"), context);
+    precacheImage(const AssetImage("assets/logos/aplikasi_logo_agakbesar.png"), context);
   }
 
   @override
